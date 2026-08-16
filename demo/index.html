@@ -69,6 +69,46 @@
     .wasm-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
     svg text { fill: var(--text); font-family: -apple-system, sans-serif; font-size: 11px; }
     #wasm-banner { padding: 8px 24px; font-size: 12px; background: #2a2010; color: var(--warn); border-bottom: 1px solid var(--border); }
+
+    /* Animated flow styles */
+    @keyframes dash-right { from { stroke-dashoffset: 160; } to { stroke-dashoffset: 0; } }
+    @keyframes dash-left  { from { stroke-dashoffset: -160; } to { stroke-dashoffset: 0; } }
+    @keyframes pop-in     { 0%{opacity:0;transform:scale(.7)} 60%{transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
+    @keyframes pulse-red  { 0%,100%{opacity:1} 50%{opacity:.35} }
+    @keyframes slide-right{ from{transform:translateX(-18px);opacity:0} to{transform:translateX(0);opacity:1} }
+    @keyframes slide-left { from{transform:translateX(18px);opacity:0}  to{transform:translateX(0);opacity:1} }
+    @keyframes glow-green { 0%,100%{filter:drop-shadow(0 0 0px #3fb950)} 50%{filter:drop-shadow(0 0 8px #3fb950)} }
+    .flow-step { opacity: 0; }
+    .flow-step.show { opacity: 1; }
+    .arrow-r { stroke-dasharray: 160; stroke-dashoffset: 160; }
+    .arrow-r.go { animation: dash-right 0.6s ease forwards; }
+    .arrow-l { stroke-dasharray: 160; stroke-dashoffset: -160; }
+    .arrow-l.go { animation: dash-left 0.6s ease forwards; }
+    .pop { opacity: 0; }
+    .pop.go { animation: pop-in 0.4s cubic-bezier(.2,.8,.4,1) forwards; }
+    .pulse-r { }
+    .pulse-r.go { animation: pulse-red 1s ease infinite; }
+    .glow-g.go { animation: glow-green 1.5s ease infinite; }
+    .kem-label { font-size: 10px; fill: #8b949e; }
+    /* Timeline bar */
+    @keyframes bar-fill { from{width:0} to{width:100%} }
+    .timeline-fill { animation: bar-fill 2s ease forwards; }
+    /* HE comparison panels */
+    .he-panel { border-radius: 8px; padding: 16px; }
+    .he-panel-unsafe { background: #200d0d; border: 1px solid #f85149; }
+    .he-panel-safe   { background: #0d200d; border: 1px solid #3fb950; }
+    .flow-node { display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; font-weight: 600; padding: 8px 12px; text-align: center; }
+    .flow-connector { text-align: center; font-size: 18px; margin: 2px 0; color: var(--muted); }
+    .he-arrow-down { color: var(--muted); font-size: 20px; line-height: 1.2; }
+    .fn-client { background: #1a2233; border: 1px solid #58a6ff; color: #58a6ff; }
+    .fn-server-safe { background: #1a2a1a; border: 1px solid #3fb950; color: #3fb950; }
+    .fn-server-unsafe { background: #2a1a1a; border: 1px solid #f85149; color: #f85149; }
+    .fn-network { background: #21262d; border: 1px solid #30363d; color: #8b949e; }
+    .fn-encrypt { background: #2a2010; border: 1px solid #d29922; color: #d29922; }
+    .fn-result { background: #1a2a1a; border: 1px solid #3fb950; color: #3fb950; }
+    .he-step { opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
+    .he-step.show { opacity: 1; transform: translateY(0); }
+    .he-label { font-size: 11px; color: var(--muted); margin: 2px 0; text-align: center; }
   </style>
 </head>
 <body>
@@ -127,6 +167,54 @@
 <div class="tab-panel" id="scene-mlkem">
   <h2>ML-KEM-768 — Key Encapsulation</h2>
   <p>ML-KEM (NIST FIPS 203) replaces ECDH for key exchange. It is a Key Encapsulation Mechanism: the sender encapsulates a shared secret using the recipient's public key; only the recipient can decapsulate it.</p>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:600;font-size:13px;">Key Encapsulation Flow</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playKEMFlow()">▶ Play</button>
+    </div>
+    <svg id="kem-svg" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;display:block;">
+      <defs>
+        <marker id="ka" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#58a6ff"/></marker>
+        <marker id="kb" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#3fb950"/></marker>
+        <marker id="kc" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#d29922"/></marker>
+      </defs>
+      <!-- Actor boxes -->
+      <rect x="10" y="20" width="140" height="160" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="80" y="42" text-anchor="middle" fill="#58a6ff" font-weight="700" font-size="12">Recipient</text>
+      <text x="80" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(bank agent)</text>
+
+      <rect x="285" y="20" width="150" height="160" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="360" y="42" text-anchor="middle" fill="#8b949e" font-weight="600" font-size="12">Network</text>
+
+      <rect x="570" y="20" width="140" height="160" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+      <text x="640" y="42" text-anchor="middle" fill="#d29922" font-weight="700" font-size="12">Sender</text>
+      <text x="640" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(TLS peer / agent)</text>
+
+      <!-- Step 1: keygen -->
+      <text id="ks1" class="pop" x="80" y="80" text-anchor="middle" fill="#58a6ff" font-size="10">GenerateKey()</text>
+      <text id="ks1b" class="pop" x="80" y="94" text-anchor="middle" fill="#c9d1d9" font-size="9">dk (private, 2400B)</text>
+      <text id="ks1c" class="pop" x="80" y="107" text-anchor="middle" fill="#c9d1d9" font-size="9">ek (public, 1184B)</text>
+
+      <!-- Step 2: ek travels right -->
+      <line id="kar1" class="arrow-r" x1="152" y1="90" x2="578" y2="90" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ka)"/>
+      <text id="kal1" class="pop" x="360" y="83" text-anchor="middle" fill="#58a6ff" font-size="10">ek (encapsulation key, 1184 bytes)</text>
+
+      <!-- Step 3: sender encapsulates -->
+      <text id="ks3" class="pop" x="640" y="112" text-anchor="middle" fill="#d29922" font-size="10">Encapsulate(ek)</text>
+      <text id="ks3b" class="pop" x="640" y="126" text-anchor="middle" fill="#c9d1d9" font-size="9">→ (ct, ss₁)</text>
+
+      <!-- Step 4: ct travels left -->
+      <line id="kar2" class="arrow-l" x1="578" y1="142" x2="152" y2="142" stroke="#d29922" stroke-width="1.5" marker-end="url(#kc)"/>
+      <text id="kal2" class="pop" x="360" y="136" text-anchor="middle" fill="#d29922" font-size="10">ct (ciphertext, 1088 bytes)</text>
+
+      <!-- Step 5: decapsulate + match -->
+      <text id="ks5" class="pop" x="80" y="162" text-anchor="middle" fill="#3fb950" font-size="10">Decapsulate(ct) → ss₂</text>
+      <text id="ks5b" class="pop" x="80" y="175" text-anchor="middle" fill="#3fb950" font-size="10">ss₁ = ss₂ ✓</text>
+      <text id="ks5c" class="pop" x="640" y="162" text-anchor="middle" fill="#3fb950" font-size="10">ss₁ established</text>
+    </svg>
+    <p style="font-size:11px;color:var(--muted);margin:4px 0 0;text-align:center;">The private key dk never leaves the recipient. Only ek (public) and ct travel on the wire.</p>
+  </div>
 
   <div class="card">
     <button class="btn" onclick="runMLKEM()">Run ML-KEM-768 Demo</button>
@@ -271,10 +359,85 @@
 <!-- ============ HE INFERENCE ============ -->
 <div class="tab-panel" id="scene-he">
   <h2>Private AI Inference — Homomorphic Encryption</h2>
-  <p>Homomorphic encryption (HE) allows computation on encrypted data without decrypting. The server runs the AI model on your encrypted query and returns an encrypted result — it never sees the plaintext inputs or outputs.</p>
+  <p>When you query an AI model, the server sees your raw inputs — your prompts, your data, your query intent. Homomorphic encryption (HE) changes this: the server computes on <em>encrypted</em> inputs and returns an <em>encrypted</em> result. It never sees plaintext at any point.</p>
 
-  <div class="callout">
-    <strong>HEIR (Homomorphic Encryption Intermediate Representation)</strong> — Google's open-source compiler IR for HE programs. Lowers HE operations to hardware-optimised instruction sequences, making practical HE inference feasible. Not an IETF standard.
+  <!-- WHY IT MATTERS: animated comparison -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-weight:700;font-size:14px;">Why Private Inference Matters</span>
+      <button class="btn" style="font-size:12px;padding:5px 14px;" onclick="playHEFlow()">▶ Play Flow</button>
+    </div>
+    <div class="grid2" style="gap:20px;align-items:start;">
+
+      <!-- LEFT: Without HE (danger) -->
+      <div class="he-panel he-panel-unsafe">
+        <div style="text-align:center;font-weight:700;font-size:13px;color:#f85149;margin-bottom:14px;">❌ Without HE (today's default)</div>
+
+        <div id="he-c1" class="he-step flow-node fn-client">Client holds: inputs = [5, 3, 8]</div>
+        <div id="he-a1" class="he-step he-label">↓ sends <strong style="color:#f85149;">plaintext</strong></div>
+        <div id="he-n1" class="he-step flow-node fn-network">Network: data exposed in transit</div>
+        <div id="he-a2" class="he-step he-label">↓</div>
+        <div id="he-s1" class="he-step flow-node fn-server-unsafe" style="flex-direction:column;gap:2px;">
+          <span>Server: sees [5, 3, 8] ⚠</span>
+          <span style="font-size:10px;font-weight:400;color:#8b949e;">logs your query · fingerprints your data · stores inputs</span>
+        </div>
+        <div id="he-a3" class="he-step he-label">↓ plaintext result</div>
+        <div id="he-r1" class="he-step flow-node fn-server-unsafe">Server also sees your result: 5.2</div>
+
+        <div id="he-risk" class="he-step" style="margin-top:12px;padding:8px;background:#1a0a0a;border-radius:6px;font-size:11px;color:#f85149;">
+          <strong>Exposure surface:</strong> query intent, proprietary data, user behaviour, results — all visible to the model provider, logged, and potentially breachable.
+        </div>
+      </div>
+
+      <!-- RIGHT: With HE (safe) -->
+      <div class="he-panel he-panel-safe">
+        <div style="text-align:center;font-weight:700;font-size:13px;color:#3fb950;margin-bottom:14px;">✓ With Homomorphic Encryption</div>
+
+        <div id="he-c2" class="he-step flow-node fn-client">Client holds: inputs = [5, 3, 8]</div>
+        <div id="he-e1" class="he-step he-label">↓ HE.Encrypt()</div>
+        <div id="he-enc" class="he-step flow-node fn-encrypt">Ciphertexts: [X₁, X₂, X₃] — opaque blobs</div>
+        <div id="he-a4" class="he-step he-label">↓ sends <strong style="color:#3fb950;">only ciphertexts</strong></div>
+        <div id="he-s2" class="he-step flow-node fn-server-safe" style="flex-direction:column;gap:2px;">
+          <span>Server: sees ??? (ciphertexts only)</span>
+          <span style="font-size:10px;font-weight:400;color:#8b949e;">applies model weights · computes dot product on ciphertexts</span>
+        </div>
+        <div id="he-a5" class="he-step he-label">↓ encrypted result</div>
+        <div id="he-er" class="he-step flow-node fn-encrypt">Encrypted output: [R] — server never decrypts</div>
+        <div id="he-a6" class="he-step he-label">↓ HE.Decrypt() — client only</div>
+        <div id="he-r2" class="he-step flow-node fn-result" id="he-r2">Result: 5.2 (plaintext, client-only)</div>
+
+        <div id="he-safe" class="he-step" style="margin-top:12px;padding:8px;background:#0a1a0a;border-radius:6px;font-size:11px;color:#3fb950;">
+          <strong>Server's view:</strong> three opaque blobs in, one opaque blob out. Zero knowledge of your data, query intent, or result.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key property: why math works -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;">The Homomorphic Property — Why Math Works on Ciphertexts</div>
+    <div class="grid2" style="gap:16px;font-size:12px;">
+      <div>
+        <p style="margin-bottom:8px;">In additive HE, <code>Dec(Enc(a) + Enc(b)) = a + b</code> without ever decrypting a or b individually.</p>
+        <p>This means a dot product (the core of every neural network layer) can run entirely on ciphertexts:</p>
+        <pre style="font-size:11px;">result_enc = Σ (Enc(input_i) × weight_i)
+result     = Decrypt(result_enc)
+           = Σ (input_i × weight_i)</pre>
+      </div>
+      <div>
+        <p><strong>HE scheme families:</strong></p>
+        <ul style="list-style:none;padding:0;color:var(--muted);">
+          <li style="padding:3px 0;"><strong style="color:var(--text);">BFV / BGV</strong> — exact integers · batching · database queries</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">CKKS</strong> — approximate floats · neural network inference · ML</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">TFHE</strong> — boolean circuits · arbitrary programs · slower</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">HEIR</strong> — Google's IR compiler targeting all three</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:16px;">
+    <strong>HEIR (Homomorphic Encryption Intermediate Representation)</strong> — Google's open-source compiler IR for HE programs, lowering HE operations to hardware-optimised instruction sequences. Not an IETF standard, but the leading open approach to making HE inference practical at inference-server scale.
   </div>
 
   <div class="card">
@@ -481,6 +644,50 @@ function requireWasm() {
 
 function show(id, html) {
   document.getElementById(id).innerHTML = html;
+}
+
+// ── Animated flow controllers ──────────────────────────────────────────────
+
+function playKEMFlow() {
+  const allIds = ['ks1','ks1b','ks1c','kar1','kal1','ks3','ks3b','kar2','kal2','ks5','ks5b','ks5c'];
+  allIds.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('go'); });
+  // Sequence: keygen → ek travels right → sender encapsulates → ct travels left → both derive ss
+  const beats = [
+    { ids: ['ks1'],           delay: 0    },
+    { ids: ['ks1b','ks1c'],   delay: 450  },
+    { ids: ['kar1','kal1'],   delay: 950  },
+    { ids: ['ks3'],           delay: 1700 },
+    { ids: ['ks3b'],          delay: 2100 },
+    { ids: ['kar2','kal2'],   delay: 2550 },
+    { ids: ['ks5','ks5b'],    delay: 3300 },
+    { ids: ['ks5c'],          delay: 3300 },
+  ];
+  beats.forEach(b => setTimeout(() => b.ids.forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('go');
+  }), b.delay));
+}
+
+function playHEFlow() {
+  document.querySelectorAll('.he-step').forEach(el => el.classList.remove('show'));
+  // Reveal in pairs (left panel, right panel) so the viewer sees the contrast live
+  const pairs = [
+    ['he-c1',   'he-c2'  ],  // t=0:   both clients hold inputs
+    ['he-a1',   'he-e1'  ],  // t=500: left sends plaintext · right encrypts
+    ['he-n1',   'he-enc' ],  // t=1000: network exposed · ciphertexts ready
+    ['he-a2',   'he-a4'  ],  // t=1500: arrows down
+    ['he-s1',   'he-s2'  ],  // t=2000: server sees data ⚠ · server sees ??? ✓
+    ['he-a3',   'he-a5'  ],  // t=2500: result arrows
+    ['he-r1',   'he-er'  ],  // t=3000: plaintext result · encrypted output
+    ['he-risk', 'he-a6'  ],  // t=3500: risk callout · client decrypt step
+    [null,      'he-r2'  ],  // t=4000: right: plaintext result (client only)
+    [null,      'he-safe'],  // t=4500: right: safe summary
+  ];
+  pairs.forEach(([left, right], i) => setTimeout(() => {
+    [left, right].forEach(id => {
+      if (!id) return;
+      const el = document.getElementById(id); if (el) el.classList.add('show');
+    });
+  }, i * 500));
 }
 
 function fmt(obj) {
