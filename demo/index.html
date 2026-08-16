@@ -71,8 +71,8 @@
     #wasm-banner { padding: 8px 24px; font-size: 12px; background: #2a2010; color: var(--warn); border-bottom: 1px solid var(--border); }
 
     /* Animated flow styles */
-    @keyframes dash-right { from { stroke-dashoffset: 160; } to { stroke-dashoffset: 0; } }
-    @keyframes dash-left  { from { stroke-dashoffset: -160; } to { stroke-dashoffset: 0; } }
+    @keyframes dash-right { from { stroke-dashoffset: 430; } to { stroke-dashoffset: 0; } }
+    @keyframes dash-left  { from { stroke-dashoffset: -430; } to { stroke-dashoffset: 0; } }
     @keyframes pop-in     { 0%{opacity:0;transform:scale(.7)} 60%{transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
     @keyframes pulse-red  { 0%,100%{opacity:1} 50%{opacity:.35} }
     @keyframes slide-right{ from{transform:translateX(-18px);opacity:0} to{transform:translateX(0);opacity:1} }
@@ -80,9 +80,10 @@
     @keyframes glow-green { 0%,100%{filter:drop-shadow(0 0 0px #3fb950)} 50%{filter:drop-shadow(0 0 8px #3fb950)} }
     .flow-step { opacity: 0; }
     .flow-step.show { opacity: 1; }
-    .arrow-r { stroke-dasharray: 160; stroke-dashoffset: 160; }
+    /* dasharray ≥ arrow span (~426px) so the full line draws in one pass */
+    .arrow-r { stroke-dasharray: 430; stroke-dashoffset: 430; }
     .arrow-r.go { animation: dash-right 0.6s ease forwards; }
-    .arrow-l { stroke-dasharray: 160; stroke-dashoffset: -160; }
+    .arrow-l { stroke-dasharray: 430; stroke-dashoffset: -430; }
     .arrow-l.go { animation: dash-left 0.6s ease forwards; }
     .pop { opacity: 0; }
     .pop.go { animation: pop-in 0.4s cubic-bezier(.2,.8,.4,1) forwards; }
@@ -182,7 +183,7 @@
       <!-- Actor boxes -->
       <rect x="10" y="20" width="140" height="160" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
       <text x="80" y="42" text-anchor="middle" fill="#58a6ff" font-weight="700" font-size="12">Recipient</text>
-      <text x="80" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(bank agent)</text>
+      <text x="80" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(workload / service)</text>
 
       <rect x="285" y="20" width="150" height="160" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
       <text x="360" y="42" text-anchor="middle" fill="#8b949e" font-weight="600" font-size="12">Network</text>
