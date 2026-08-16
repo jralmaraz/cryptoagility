@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cryptographic Agility PoC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+      --border: #30363d; --accent: #58a6ff; --accent2: #3fb950;
+      --warn: #d29922; --danger: #f85149; --text: #c9d1d9;
+      --muted: #8b949e; --purple: #bc8cff; --orange: #ffa657;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 18px; font-weight: 600; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+    .badge-pq { background: #1a4a1a; color: var(--accent2); border: 1px solid #2ea04326; }
+    .badge-nist { background: #1a2a4a; color: var(--accent); border: 1px solid #58a6ff26; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
+    nav button { background: none; border: none; color: var(--muted); padding: 12px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+    nav button:hover { color: var(--text); }
+    nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    h2 { font-size: 22px; margin-bottom: 8px; }
+    h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px; }
+    p { color: var(--muted); margin-bottom: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+    .btn { background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    .stat { text-align: center; }
+    .stat .val { font-size: 28px; font-weight: 700; color: var(--accent); }
+    .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; margin: 2px; font-weight: 500; }
+    .tag-pq { background: #1a4a1a; color: var(--accent2); }
+    .tag-hybrid { background: #2a2a10; color: var(--warn); }
+    .tag-classical { background: #2a1a1a; color: var(--danger); }
+    .tag-safe { background: #1a4a1a; color: var(--accent2); }
+    .tag-unsafe { background: #2a1a1a; color: var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; background: var(--surface2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .loading { color: var(--muted); font-style: italic; }
+    .result-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-top: 12px; min-height: 40px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+    .ok { color: var(--accent2); }
+    .err { color: var(--danger); }
+    .step { padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border: none; }
+    .step-num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #000; text-align: center; line-height: 24px; font-weight: 700; font-size: 11px; margin-right: 8px; }
+    .threat-bar { height: 8px; border-radius: 4px; margin: 4px 0; }
+    .threat-none { background: var(--accent2); }
+    .threat-emerging { background: var(--warn); }
+    .threat-imminent { background: var(--orange); }
+    .threat-active { background: var(--danger); }
+    .active-row { background: #1a2a3a !important; }
+    .callout { border-left: 3px solid var(--accent); padding: 10px 14px; background: #1a2233; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .callout.warn { border-color: var(--warn); background: #2a2010; }
+    .callout.danger { border-color: var(--danger); background: #2a1010; }
+    .wasm-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    svg text { fill: var(--text); font-family: -apple-system, sans-serif; font-size: 11px; }
+    #wasm-banner { padding: 8px 24px; font-size: 12px; background: #2a2010; color: var(--warn); border-bottom: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<div id="wasm-banner">Loading WASM module...</div>
+
+<header>
+  <h1>Cryptographic Agility</h1>
+  <span class="badge badge-nist">NIST FIPS 203/204/205</span>
+  <span class="badge badge-pq">Post-Quantum Ready</span>
+</header>
+
+<nav id="nav"></nav>
+
+<main>
+
+<!-- ============ OVERVIEW ============ -->
+<div class="tab-panel active" id="scene-overview">
+  <h2>Quantum Threat &amp; Cryptographic Agility</h2>
+  <p>A Cryptographically Relevant Quantum Computer (CRQC) breaks RSA, ECDSA, and ECDH via Shor's algorithm. NIST published three quantum-safe standards in August 2024. Cryptographic agility is the ability to negotiate and rotate algorithms without changing protocols.</p>
+
+  <div class="callout danger">
+    <strong>Harvest Now, Decrypt Later</strong> — Adversaries are recording encrypted traffic today to decrypt once a CRQC exists. Long-lived key material (TLS sessions, identity tokens, stored secrets) is already at risk.
+  </div>
+
+  <div class="grid3" style="margin: 20px 0;">
+    <div class="card stat"><div class="val">2030–</div><div class="label">CRQC estimates begin</div></div>
+    <div class="card stat"><div class="val">3</div><div class="label">NIST FIPS published 2024</div></div>
+    <div class="card stat"><div class="val">RFC 7696</div><div class="label">Crypto Agility standard</div></div>
+  </div>
+
+  <h3>NIST PQC Standards (August 2024)</h3>
+  <table>
+    <thead><tr><th>Standard</th><th>Algorithm</th><th>Purpose</th><th>Security Level</th></tr></thead>
+    <tbody>
+      <tr><td><strong>FIPS 203</strong></td><td>ML-KEM (Kyber)</td><td>Key encapsulation (replaces ECDH)</td><td>L1/L3/L5</td></tr>
+      <tr><td><strong>FIPS 204</strong></td><td>ML-DSA (Dilithium)</td><td>Digital signatures (replaces ECDSA)</td><td>L2/L3/L5</td></tr>
+      <tr><td><strong>FIPS 205</strong></td><td>SLH-DSA (SPHINCS+)</td><td>Hash-based signatures (stateless)</td><td>L1/L3/L5</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Migration Strategy</h3>
+  <div class="grid2" style="margin-top: 12px;">
+    <div class="card">
+      <strong>Phase 1 — Hybrid (now)</strong>
+      <p style="margin-top:8px;">Run classical + PQC in parallel. Both must be broken for the system to be compromised. Used in TLS 1.3 as X25519+ML-KEM-768.</p>
+    </div>
+    <div class="card">
+      <strong>Phase 2 — PQC Only (CRQC era)</strong>
+      <p style="margin-top:8px;">Deprecate classical algorithms once CRQC threat is active. Crypto agility ensures rotation happens without protocol changes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ML-KEM ============ -->
+<div class="tab-panel" id="scene-mlkem">
+  <h2>ML-KEM-768 — Key Encapsulation</h2>
+  <p>ML-KEM (NIST FIPS 203) replaces ECDH for key exchange. It is a Key Encapsulation Mechanism: the sender encapsulates a shared secret using the recipient's public key; only the recipient can decapsulate it.</p>
+
+  <div class="card">
+    <button class="btn" onclick="runMLKEM()">Run ML-KEM-768 Demo</button>
+    <div id="mlkem-result" class="result-box loading">Click to generate key pair and run encapsulation...</div>
+  </div>
+
+  <h3>Size Comparison</h3>
+  <table>
+    <thead><tr><th>Property</th><th>ECDH P-256</th><th>ML-KEM-768</th><th>Overhead</th></tr></thead>
+    <tbody>
+      <tr><td>Public key</td><td>65 bytes</td><td>1,184 bytes</td><td>×18</td></tr>
+      <tr><td>Ciphertext / KEM output</td><td>65 bytes</td><td>1,088 bytes</td><td>×17</td></tr>
+      <tr><td>Shared secret</td><td>32 bytes</td><td>32 bytes</td><td>×1</td></tr>
+      <tr><td>Quantum-safe</td><td><span class="tag tag-unsafe">No</span></td><td><span class="tag tag-safe">Yes</span></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:16px;">
+    <strong>Go stdlib:</strong> ML-KEM-768 is in the Go standard library as <code>crypto/mlkem</code> since Go 1.24. This demo uses a real implementation — not a simulation.
+  </div>
+</div>
+
+<!-- ============ ML-DSA ============ -->
+<div class="tab-panel" id="scene-mldsa">
+  <h2>ML-DSA-65 — Digital Signatures</h2>
+  <p>ML-DSA (NIST FIPS 204) replaces ECDSA for digital signatures. It is a lattice-based scheme with significantly larger keys and signatures than classical algorithms — but is quantum-safe.</p>
+
+  <div class="card">
+    <button class="btn" onclick="runMLDSA()">Run ML-DSA-65 Demo</button>
+    <div id="mldsa-result" class="result-box loading">Click to generate key pair and sign a token payload...</div>
+  </div>
+
+  <h3>Size Comparison</h3>
+  <table>
+    <thead><tr><th>Property</th><th>ECDSA P-256</th><th>Ed25519</th><th>ML-DSA-65</th></tr></thead>
+    <tbody>
+      <tr><td>Public key</td><td>65 bytes</td><td>32 bytes</td><td>1,952 bytes</td></tr>
+      <tr><td>Signature</td><td>72 bytes (DER)</td><td>64 bytes</td><td>3,309 bytes</td></tr>
+      <tr><td>Quantum-safe</td><td><span class="tag tag-unsafe">No</span></td><td><span class="tag tag-unsafe">No</span></td><td><span class="tag tag-safe">Yes</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>JWT Identity Token Transition</h3>
+  <div class="grid2">
+    <div>
+      <p><strong>Today (classical)</strong></p>
+      <pre>{"typ":"agent+jwt","alg":"ES256"}
+{"sub":"spiffe://bank.internal/agent-1",
+ "iss":"https://idp.bank.internal"}</pre>
+    </div>
+    <div>
+      <p><strong>Post-quantum era</strong></p>
+      <pre>{"typ":"agent+jwt","alg":"ML-DSA-65"}
+{"sub":"spiffe://bank.internal/agent-1",
+ "iss":"https://idp.bank.internal"}</pre>
+    </div>
+  </div>
+  <div class="callout warn">
+    JOSE <code>alg</code> values for ML-DSA are being standardised in the IETF JOSE WG (draft-ietf-jose-fully-specified-algorithms). The algorithm ID shown is illustrative.
+  </div>
+</div>
+
+<!-- ============ HYBRID ============ -->
+<div class="tab-panel" id="scene-hybrid">
+  <h2>Hybrid Classical + Post-Quantum</h2>
+  <p>During the transition, running both classical and PQC algorithms in parallel provides defense-in-depth: an attacker must break both to compromise the session. This is the approach adopted in TLS 1.3 (X25519+ML-KEM-768).</p>
+
+  <div class="card">
+    <button class="btn" onclick="runHybridKEM()">Run Hybrid KEM Demo</button>
+    <div id="hybrid-result" class="result-box loading">Click to see X25519+ML-KEM-768 side by side...</div>
+  </div>
+
+  <h3>Hybrid Protocol Flow</h3>
+  <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;margin:16px 0;">
+    <rect x="10" y="10" width="120" height="40" rx="6" fill="#21262d" stroke="#30363d"/>
+    <text x="70" y="35" text-anchor="middle" font-weight="600">Client</text>
+    <rect x="620" y="10" width="120" height="40" rx="6" fill="#21262d" stroke="#30363d"/>
+    <text x="680" y="35" text-anchor="middle" font-weight="600">Server</text>
+    <!-- Leg 1 -->
+    <line x1="130" y1="65" x2="620" y2="65" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="375" y="58" text-anchor="middle" fill="#58a6ff" font-size="10">Leg 1: X25519 public key (32 bytes)</text>
+    <polygon points="618,61 626,65 618,69" fill="#58a6ff"/>
+    <line x1="130" y1="90" x2="620" y2="90" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="375" y="83" text-anchor="middle" fill="#bc8cff" font-size="10">Leg 2: ML-KEM-768 encapsulation key (1184 bytes)</text>
+    <polygon points="618,86 626,90 618,94" fill="#bc8cff"/>
+    <!-- Response -->
+    <line x1="620" y1="120" x2="130" y2="120" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="375" y="113" text-anchor="middle" fill="#58a6ff" font-size="10">Leg 1 response: X25519 ECDH (32 bytes)</text>
+    <polygon points="132,116 124,120 132,124" fill="#58a6ff"/>
+    <line x1="620" y1="145" x2="130" y2="145" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="375" y="138" text-anchor="middle" fill="#bc8cff" font-size="10">Leg 2 response: ML-KEM ciphertext (1088 bytes)</text>
+    <polygon points="132,141 124,145 132,149" fill="#bc8cff"/>
+    <!-- KDF -->
+    <text x="375" y="180" text-anchor="middle" font-size="11" fill="#3fb950">Final secret = KDF(X25519_ss ‖ ML-KEM_ss) — break BOTH to win</text>
+  </svg>
+</div>
+
+<!-- ============ AGILITY ============ -->
+<div class="tab-panel" id="scene-agility">
+  <h2>Algorithm Negotiation &amp; Rotation</h2>
+  <p>Crypto agility (RFC 7696) means a system can negotiate the strongest mutually-supported algorithm and rotate when threat level changes — without protocol changes.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Algorithm Negotiation</h3>
+    <p>Each peer advertises its supported algorithms. The negotiation selects the strongest common algorithm: post-quantum &gt; hybrid &gt; classical.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--muted)">Local peer supports</label>
+        <select id="local-preset" style="margin-left:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;">
+          <option value='["ES256","ML-DSA-65","X25519+ML-KEM-768"]'>PQC + Classical</option>
+          <option value='["ES256","EdDSA"]'>Classical only</option>
+          <option value='["ML-DSA-65","ML-KEM-768"]'>PQC only</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--muted)">Remote peer supports</label>
+        <select id="remote-preset" style="margin-left:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;">
+          <option value='["ES256","ML-DSA-65"]'>PQC + Classical</option>
+          <option value='["EdDSA","ES256"]'>Classical only</option>
+          <option value='["ML-DSA-65","ML-KEM-768","ES256+ML-DSA-65"]'>PQC + Hybrid</option>
+          <option value='["ML-KEM-1024"]'>Incompatible</option>
+        </select>
+      </div>
+      <button class="btn" onclick="runNegotiate()">Negotiate</button>
+    </div>
+    <div id="negotiate-result" class="result-box loading">Select peer capabilities and click Negotiate...</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Threat Level → Key Rotation Policy</h3>
+    <p>As the quantum threat evolves, the active algorithm set must change. The rotation policy maps threat level to required algorithms.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="btn btn-secondary" onclick="runRotation('none')">None</button>
+      <button class="btn btn-secondary" onclick="runRotation('emerging')">Emerging</button>
+      <button class="btn btn-secondary" onclick="runRotation('imminent')">Imminent</button>
+      <button class="btn btn-secondary" onclick="runRotation('active')">Active (CRQC)</button>
+    </div>
+    <div id="rotation-result" class="result-box loading">Select a threat level to see the rotation policy...</div>
+  </div>
+</div>
+
+<!-- ============ HE INFERENCE ============ -->
+<div class="tab-panel" id="scene-he">
+  <h2>Private AI Inference — Homomorphic Encryption</h2>
+  <p>Homomorphic encryption (HE) allows computation on encrypted data without decrypting. The server runs the AI model on your encrypted query and returns an encrypted result — it never sees the plaintext inputs or outputs.</p>
+
+  <div class="callout">
+    <strong>HEIR (Homomorphic Encryption Intermediate Representation)</strong> — Google's open-source compiler IR for HE programs. Lowers HE operations to hardware-optimised instruction sequences, making practical HE inference feasible. Not an IETF standard.
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Simulated HE Inference Demo</h3>
+    <p>Enter input values and weights. The client encrypts inputs; the server computes the weighted sum on ciphertexts.</p>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;">Inputs (comma-separated integers)</label>
+        <input id="he-inputs" type="text" value="5, 3, 8" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 10px;width:200px;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;">Weights (comma-separated floats)</label>
+        <input id="he-weights" type="text" value="0.4, 0.9, 0.3" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 10px;width:200px;">
+      </div>
+      <button class="btn" onclick="runHEInference()">Run Private Inference</button>
+    </div>
+    <div id="he-result" class="result-box loading">Enter inputs and weights, then click Run...</div>
+  </div>
+
+  <h3>HE Scheme Comparison</h3>
+  <table>
+    <thead><tr><th>Scheme</th><th>Data Type</th><th>Operations</th><th>Use Case</th></tr></thead>
+    <tbody>
+      <tr><td>BFV / BGV</td><td>Integers</td><td>+, ×</td><td>Statistical queries, exact computation</td></tr>
+      <tr><td>CKKS</td><td>Floating point</td><td>+, ×, approx.</td><td>Neural network inference, ML</td></tr>
+      <tr><td>TFHE</td><td>Boolean circuits</td><td>AND, OR, NOT</td><td>Arbitrary programs (slow)</td></tr>
+      <tr><td>This demo</td><td>Integer (fixed-pt)</td><td>+, × scalar</td><td>Additive homomorphism illustration</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ IDENTITY TRANSITION ============ -->
+<div class="tab-panel" id="scene-identity">
+  <h2>Identity &amp; Auth Token Transition</h2>
+  <p>WIMSE workload identity tokens (WIT), agent tokens, and mTLS certificates all use classical algorithms today. The transition to PQC affects every layer.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <strong>JWT / Agent Token (today)</strong>
+      <pre style="margin-top:10px;">Header:
+{
+  "typ": "agent+jwt",
+  "alg": "ES256",     ← ECDSA P-256
+  "kid": "key-2026-01"
+}
+Payload:
+{
+  "sub": "spiffe://bank.internal/agent",
+  "cnf": { "jkt": "&lt;EC P-256 thumbprint&gt;" }
+}</pre>
+    </div>
+    <div class="card">
+      <strong>JWT / Agent Token (PQC era)</strong>
+      <pre style="margin-top:10px;">Header:
+{
+  "typ": "agent+jwt",
+  "alg": "ML-DSA-65",  ← FIPS 204
+  "kid": "pq-key-2027-01"
+}
+Payload:
+{
+  "sub": "spiffe://bank.internal/agent",
+  "cnf": { "jkt": "&lt;ML-KEM-768 thumbprint&gt;" }
+}</pre>
+    </div>
+  </div>
+
+  <h3>mTLS Certificate Migration</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>Today</th><th>Transition (hybrid)</th><th>PQC era</th></tr></thead>
+    <tbody>
+      <tr><td>Root CA signing</td><td>ECDSA P-384</td><td>ECDSA + ML-DSA-87</td><td>ML-DSA-87</td></tr>
+      <tr><td>Leaf cert signing</td><td>ECDSA P-256</td><td>ECDSA + ML-DSA-65</td><td>ML-DSA-65</td></tr>
+      <tr><td>TLS key exchange</td><td>ECDH P-256</td><td>X25519+ML-KEM-768</td><td>ML-KEM-768</td></tr>
+      <tr><td>SPIFFE SVID key</td><td>EC P-256</td><td>EC + ML-KEM-768</td><td>ML-KEM-768</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn" style="margin-top:16px;">
+    <strong>Crypto agility in SPIRE:</strong> SPIRE Server signing key must be rotated to ML-DSA before SVID TTL expires after transition. Plan key rotation windows during low-traffic periods. SVID renewals will fail if the new signing key algorithm is not supported by agents.
+  </div>
+</div>
+
+<!-- ============ STANDARDS ============ -->
+<div class="tab-panel" id="scene-standards">
+  <h2>Standards Tracker</h2>
+  <p>Post-quantum cryptography standards relevant to this PoC, tracked across NIST and IETF.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Standard</th><th>Body</th><th>Status</th><th>Purpose</th><th>Impl.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://csrc.nist.gov/pubs/fips/203/final" style="color:var(--accent)">NIST FIPS 203</a></td>
+        <td>NIST</td>
+        <td><span class="tag tag-safe">Published</span></td>
+        <td>ML-KEM — key encapsulation</td>
+        <td><code>pkg/pqc/mlkem.go</code></td>
+      </tr>
+      <tr>
+        <td><a href="https://csrc.nist.gov/pubs/fips/204/final" style="color:var(--accent)">NIST FIPS 204</a></td>
+        <td>NIST</td>
+        <td><span class="tag tag-safe">Published</span></td>
+        <td>ML-DSA — digital signatures</td>
+        <td><code>pkg/pqc/mldsa.go</code></td>
+      </tr>
+      <tr>
+        <td><a href="https://csrc.nist.gov/pubs/fips/205/final" style="color:var(--accent)">NIST FIPS 205</a></td>
+        <td>NIST</td>
+        <td><span class="tag tag-safe">Published</span></td>
+        <td>SLH-DSA — hash-based signatures</td>
+        <td>Registry only</td>
+      </tr>
+      <tr>
+        <td>draft-ietf-pquip-pqc-engineers</td>
+        <td>IETF PQUIP</td>
+        <td><span class="tag tag-hybrid">Active</span></td>
+        <td>PQC engineering guide</td>
+        <td>Threat taxonomy</td>
+      </tr>
+      <tr>
+        <td>draft-ietf-tls-hybrid-design</td>
+        <td>IETF TLS</td>
+        <td><span class="tag tag-hybrid">Active</span></td>
+        <td>Hybrid KEM in TLS 1.3</td>
+        <td>hybridKEMDemo</td>
+      </tr>
+      <tr>
+        <td>draft-ietf-jose-fully-specified-algorithms</td>
+        <td>IETF JOSE</td>
+        <td><span class="tag tag-hybrid">Active</span></td>
+        <td>PQC JOSE alg values</td>
+        <td>Identity tab</td>
+      </tr>
+      <tr>
+        <td>HEIR (Google)</td>
+        <td>Google OSS</td>
+        <td><span class="tag tag-hybrid">Active</span></td>
+        <td>HE compiler IR</td>
+        <td>HE inference tab</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</main>
+
+<script src="wasm_exec.js"></script>
+<script>
+const TABS = [
+  { id:"overview",  label:"Overview" },
+  { id:"mlkem",     label:"ML-KEM" },
+  { id:"mldsa",     label:"ML-DSA" },
+  { id:"hybrid",    label:"Hybrid Classical+PQC" },
+  { id:"agility",   label:"Crypto Agility" },
+  { id:"he",        label:"Private Inference (HE)" },
+  { id:"identity",  label:"Identity Transition" },
+  { id:"standards", label:"Standards" },
+];
+
+// Build nav
+const nav = document.getElementById("nav");
+TABS.forEach(t => {
+  const btn = document.createElement("button");
+  btn.textContent = t.label;
+  btn.dataset.tab = t.id;
+  btn.addEventListener("click", () => switchTab(t.id));
+  if (t.id === "overview") btn.classList.add("active");
+  nav.appendChild(btn);
+});
+
+function switchTab(id) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById("scene-" + id).classList.add("active");
+  document.querySelector(`nav button[data-tab="${id}"]`).classList.add("active");
+}
+
+// WASM
+let wasmReady = false;
+const go = new Go();
+WebAssembly.instantiateStreaming(fetch("cryptoagility.wasm"), go.importObject)
+  .then(result => {
+    go.run(result.instance);
+  })
+  .catch(e => {
+    document.getElementById("wasm-banner").textContent = "WASM load failed: " + e;
+  });
+
+document.addEventListener("wasm-ready", () => {
+  wasmReady = true;
+  document.getElementById("wasm-banner").style.display = "none";
+  const init = cryptoAgilityInit();
+  console.log("WASM ready:", init);
+});
+
+function requireWasm() {
+  if (!wasmReady) { alert("WASM module is still loading — please wait."); return false; }
+  return true;
+}
+
+function show(id, html) {
+  document.getElementById(id).innerHTML = html;
+}
+
+function fmt(obj) {
+  return "<pre>" + JSON.stringify(obj, null, 2) + "</pre>";
+}
+
+function runMLKEM() {
+  if (!requireWasm()) return;
+  show("mlkem-result", "<span class='loading'>Running...</span>");
+  setTimeout(() => {
+    const r = mlkemDemo();
+    if (!r.ok) { show("mlkem-result", `<span class='err'>Error: ${r.error}</span>`); return; }
+    const steps = r.steps.map((s,i) =>
+      `<div class='step'><span class='step-num'>${i+1}</span><strong>${s.label}</strong><br><span style='color:var(--muted);font-size:12px;margin-left:32px;'>${s.detail}</span></div>`
+    ).join("");
+    const cmp = r.classical_comparison;
+    show("mlkem-result", `
+      <div style='margin-bottom:12px;'>
+        <span class='tag tag-safe'>ML-KEM-768</span> <span class='tag tag-pq'>FIPS 203</span> <span class='tag tag-safe'>Quantum-safe</span>
+      </div>
+      ${steps}
+      <div style='margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;'>
+        <div style='background:var(--surface2);padding:8px;border-radius:4px;'>
+          <div style='color:var(--muted)'>ECDH P-256 public key</div>
+          <div style='font-size:18px;font-weight:700;color:var(--danger)'>${cmp.ECDH_P256_pub_bytes} bytes</div>
+        </div>
+        <div style='background:var(--surface2);padding:8px;border-radius:4px;'>
+          <div style='color:var(--muted)'>ML-KEM-768 encapsulation key</div>
+          <div style='font-size:18px;font-weight:700;color:var(--accent2)'>${cmp.ML_KEM_768_pub_bytes} bytes</div>
+        </div>
+      </div>
+    `);
+  }, 10);
+}
+
+function runMLDSA() {
+  if (!requireWasm()) return;
+  show("mldsa-result", "<span class='loading'>Running...</span>");
+  setTimeout(() => {
+    const r = mldsaDemo();
+    if (!r.ok) { show("mldsa-result", `<span class='err'>Error: ${r.error}</span>`); return; }
+    const sv = r.sign_verify;
+    const cmp = r.classical_comparison;
+    show("mldsa-result", `
+      <div style='margin-bottom:12px;'>
+        <span class='tag tag-safe'>ML-DSA-65</span> <span class='tag tag-pq'>FIPS 204</span>
+        JWT header alg: <code>"${r.jwt_header.alg}"</code>
+      </div>
+      <div style='margin-bottom:10px;'>
+        Message bytes: <strong>${sv.message_bytes}</strong> &nbsp;|&nbsp;
+        Signature bytes: <strong>${sv.sig_bytes}</strong> &nbsp;|&nbsp;
+        Valid: <span class='${sv.valid?"ok":"err"}'>${sv.valid}</span>
+      </div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;'>
+        <div style='background:var(--surface2);padding:8px;border-radius:4px;'>
+          <div style='color:var(--muted)'>Ed25519 signature</div>
+          <div style='font-size:18px;font-weight:700;color:var(--danger)'>${cmp.EdDSA_sig_bytes} bytes</div>
+        </div>
+        <div style='background:var(--surface2);padding:8px;border-radius:4px;'>
+          <div style='color:var(--muted)'>ML-DSA-65 signature</div>
+          <div style='font-size:18px;font-weight:700;color:var(--accent2)'>${cmp.ML_DSA_65_sig_bytes} bytes</div>
+        </div>
+      </div>
+      <div style='margin-top:8px;font-size:11px;color:var(--muted);'>${r.summary.note}</div>
+    `);
+  }, 10);
+}
+
+function runHybridKEM() {
+  if (!requireWasm()) return;
+  show("hybrid-result", "<span class='loading'>Running...</span>");
+  setTimeout(() => {
+    const r = hybridKEMDemo();
+    if (!r.ok) { show("hybrid-result", `<span class='err'>Error: ${r.error}</span>`); return; }
+    const legs = r.legs.map(l => `
+      <div style='background:var(--surface2);padding:10px;border-radius:6px;'>
+        <div style='font-weight:600;margin-bottom:6px;'>${l.name}</div>
+        <div style='font-size:12px;color:var(--muted);'>
+          Pub: <strong>${l.pub_bytes}B</strong> &nbsp; CT: <strong>${l.ct_bytes}B</strong> &nbsp; SS: <strong>${l.ss_bytes}B</strong><br>
+          Quantum-safe: <span class='${l.quantum_safe?"ok":"err"}'>${l.quantum_safe}</span><br>
+          Breaks if: ${l.breaks_if}
+        </div>
+      </div>
+    `).join("");
+    show("hybrid-result", `
+      <div style='margin-bottom:10px;font-size:12px;color:var(--muted);'>${r.explanation}</div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;'>${legs}</div>
+      <div style='background:#1a2233;padding:10px;border-radius:6px;font-size:12px;'>
+        <span style='font-weight:600;'>Combined:</span>
+        Total pub: ${r.combined.total_pub_bytes}B &nbsp;|&nbsp;
+        Total CT: ${r.combined.total_ct_bytes}B &nbsp;|&nbsp;
+        Final SS: ${r.combined.final_ss_bytes}B &nbsp;|&nbsp;
+        Quantum-safe: <span class='ok'>true</span>
+      </div>
+      <div style='margin-top:8px;font-size:11px;color:var(--muted);'>${r.tls_context}</div>
+    `);
+  }, 10);
+}
+
+function runNegotiate() {
+  if (!requireWasm()) return;
+  const local = document.getElementById("local-preset").value;
+  const remote = document.getElementById("remote-preset").value;
+  const r = agilityNegotiateDemo(local, remote);
+  if (!r.ok) {
+    show("negotiate-result", `<span class='err'>No common algorithm found. ${r.error}</span>`);
+    return;
+  }
+  const typeColor = r.type === "post-quantum" ? "tag-safe" : r.type === "hybrid" ? "tag-hybrid" : "tag-classical";
+  show("negotiate-result", `
+    <div style='margin-bottom:10px;'>
+      Selected: <strong>${r.selected}</strong>
+      <span class='tag ${typeColor}'>${r.type}</span>
+      Quantum-safe: <span class='${r.quantum_safe?"ok":"err"}'>${r.quantum_safe}</span>
+    </div>
+    <div style='font-size:12px;color:var(--muted);'>${r.reason}</div>
+  `);
+}
+
+function runRotation(level) {
+  if (!requireWasm()) return;
+  const r = keyRotationDemo(level);
+  if (!r.ok) { show("rotation-result", `<span class='err'>${r.error}</span>`); return; }
+  const rows = r.all_levels.map(l => {
+    const cls = l.active ? " class='active-row'" : "";
+    return `<tr${cls}><td>${l.active ? "→ " : ""}<strong>${l.level}</strong></td><td><code>${l.sig_alg}</code></td><td><code>${l.kem_alg}</code></td><td style='color:var(--muted);font-size:12px;'>${l.description}</td></tr>`;
+  }).join("");
+  show("rotation-result", `
+    <div style='margin-bottom:10px;'>
+      Threat: <strong>${r.current_level}</strong> &nbsp;|&nbsp;
+      Rotation needed from classical: <span class='${r.rotation_needed?"err":"ok"}'>${r.rotation_needed}</span>
+    </div>
+    <table>
+      <thead><tr><th>Level</th><th>Signature Alg</th><th>KEM Alg</th><th>Rationale</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `);
+}
+
+function runHEInference() {
+  if (!requireWasm()) return;
+  const rawInputs = document.getElementById("he-inputs").value.split(",").map(s => parseInt(s.trim(), 10));
+  const rawWeights = document.getElementById("he-weights").value.split(",").map(s => parseFloat(s.trim()));
+  if (rawInputs.some(isNaN) || rawWeights.some(isNaN)) {
+    show("he-result", "<span class='err'>Invalid inputs or weights — use comma-separated numbers.</span>");
+    return;
+  }
+  show("he-result", "<span class='loading'>Encrypting and computing...</span>");
+  setTimeout(() => {
+    const payload = JSON.stringify({ inputs: rawInputs, weights: rawWeights });
+    const r = heInferenceDemo(payload);
+    if (!r.ok) { show("he-result", `<span class='err'>Error: ${r.error}</span>`); return; }
+    const encRows = r.client_encrypted_inputs.map(e =>
+      `<tr><td>${e.plaintext}</td><td style='color:var(--muted);font-family:monospace;'>${e.ciphertext}</td></tr>`
+    ).join("");
+    const steps = r.server_computation.steps.map(s => `<div class='step' style='font-size:12px;color:var(--muted);'>${s}</div>`).join("");
+    show("he-result", `
+      <div style='font-size:12px;margin-bottom:10px;color:var(--muted);'>Key ID: <code>${r.key_id}</code></div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;'>
+        <div>
+          <div style='font-weight:600;margin-bottom:6px;'>Client encrypts inputs</div>
+          <table><thead><tr><th>Plaintext</th><th>Ciphertext (opaque to server)</th></tr></thead>
+          <tbody>${encRows}</tbody></table>
+        </div>
+        <div>
+          <div style='font-weight:600;margin-bottom:6px;'>Server computation (on ciphertexts only)</div>
+          ${steps}
+          <div style='margin-top:8px;font-size:12px;'>Output ciphertext: <code>${r.server_computation.enc_output_ciphertext}</code></div>
+        </div>
+      </div>
+      <div style='margin-top:12px;background:#1a2a1a;padding:10px;border-radius:6px;'>
+        <strong>Client decrypts result: <span class='ok'>${r.client_decrypted_output.toFixed(3)}</span></strong><br>
+        <span style='font-size:12px;color:var(--muted);'>${r.explanation}</span>
+      </div>
+    `);
+  }, 10);
+}
+</script>
+</body>
+</html>

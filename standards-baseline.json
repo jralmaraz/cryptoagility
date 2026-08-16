@@ -1,0 +1,79 @@
+{
+  "updated": "2026-08-16",
+  "standards": [
+    {
+      "id": "nist-fips-203",
+      "label": "NIST FIPS 203 — ML-KEM",
+      "status": "published",
+      "implemented_rev": "final",
+      "first_seen": "2024-08-13",
+      "source": "https://csrc.nist.gov/pubs/fips/203/final",
+      "notes": "ML-KEM-768 implemented in pkg/pqc/mlkem.go via crypto/mlkem stdlib"
+    },
+    {
+      "id": "nist-fips-204",
+      "label": "NIST FIPS 204 — ML-DSA",
+      "status": "published",
+      "implemented_rev": "final",
+      "first_seen": "2024-08-13",
+      "source": "https://csrc.nist.gov/pubs/fips/204/final",
+      "notes": "ML-DSA-65 interface in pkg/pqc/mldsa.go; backed by Ed25519 pending Go stdlib support"
+    },
+    {
+      "id": "nist-fips-205",
+      "label": "NIST FIPS 205 — SLH-DSA",
+      "status": "published",
+      "implemented_rev": "final",
+      "first_seen": "2024-08-13",
+      "source": "https://csrc.nist.gov/pubs/fips/205/final",
+      "notes": "SLH-DSA-128s in algorithm registry; no separate package yet"
+    },
+    {
+      "id": "draft-ietf-pquip-pqc-engineers",
+      "label": "Post-Quantum Cryptography for Engineers",
+      "status": "tracked",
+      "implemented_rev": "",
+      "wg": "PQUIP",
+      "datatracker_url": "https://datatracker.ietf.org/doc/draft-ietf-pquip-pqc-engineers/",
+      "first_seen": "2026-08-16",
+      "notes": "Informational; informs threat level taxonomy in pkg/agility/rotation.go"
+    },
+    {
+      "id": "draft-ietf-tls-hybrid-design",
+      "label": "Hybrid key exchange in TLS 1.3",
+      "status": "tracked",
+      "implemented_rev": "",
+      "wg": "TLS",
+      "datatracker_url": "https://datatracker.ietf.org/doc/draft-ietf-tls-hybrid-design/",
+      "first_seen": "2026-08-16",
+      "notes": "Basis for X25519+ML-KEM-768 hybrid mode in hybridKEMDemo"
+    },
+    {
+      "id": "rfc9258",
+      "label": "RFC 9258 — Importing External Pre-Shared Keys (PSKs) for TLS 1.3",
+      "status": "published",
+      "implemented_rev": "final",
+      "first_seen": "2026-08-16",
+      "notes": "Referenced for X25519MLKEM768 hybrid group naming"
+    },
+    {
+      "id": "draft-ietf-jose-fully-specified-algorithms",
+      "label": "JOSE Fully Specified Algorithms",
+      "status": "tracked",
+      "implemented_rev": "",
+      "wg": "JOSE",
+      "datatracker_url": "https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/",
+      "first_seen": "2026-08-16",
+      "notes": "Will define JOSE alg values for ML-DSA; tracked for JWT identity transition tab"
+    },
+    {
+      "id": "heir-google",
+      "label": "HEIR — Homomorphic Encryption Intermediate Representation",
+      "status": "monitored",
+      "implemented_rev": "",
+      "source": "https://github.com/google/heir",
+      "first_seen": "2026-08-16",
+      "notes": "Open-source (not IETF); basis for HE inference concepts in pkg/inference"
+    }
+  ]
+}
