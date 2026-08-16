@@ -110,6 +110,9 @@
     .he-step { opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
     .he-step.show { opacity: 1; transform: translateY(0); }
     .he-label { font-size: 11px; color: var(--muted); margin: 2px 0; text-align: center; }
+    /* SVG diagram backgrounds */
+    #kem-svg, #dsa-svg, #hybrid-svg { background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(56,139,253,.08) 0%, transparent 70%); border-radius: 6px; }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
   </style>
 </head>
 <body>
