@@ -69,6 +69,47 @@
     .wasm-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
     svg text { fill: var(--text); font-family: -apple-system, sans-serif; font-size: 11px; }
     #wasm-banner { padding: 8px 24px; font-size: 12px; background: #2a2010; color: var(--warn); border-bottom: 1px solid var(--border); }
+
+    /* Animated flow styles */
+    @keyframes dash-right { from { stroke-dashoffset: 430; } to { stroke-dashoffset: 0; } }
+    @keyframes dash-left  { from { stroke-dashoffset: -430; } to { stroke-dashoffset: 0; } }
+    @keyframes pop-in     { 0%{opacity:0;transform:scale(.7)} 60%{transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
+    @keyframes pulse-red  { 0%,100%{opacity:1} 50%{opacity:.35} }
+    @keyframes slide-right{ from{transform:translateX(-18px);opacity:0} to{transform:translateX(0);opacity:1} }
+    @keyframes slide-left { from{transform:translateX(18px);opacity:0}  to{transform:translateX(0);opacity:1} }
+    @keyframes glow-green { 0%,100%{filter:drop-shadow(0 0 0px #3fb950)} 50%{filter:drop-shadow(0 0 8px #3fb950)} }
+    .flow-step { opacity: 0; }
+    .flow-step.show { opacity: 1; }
+    /* dasharray ≥ arrow span (~426px) so the full line draws in one pass */
+    .arrow-r { stroke-dasharray: 430; stroke-dashoffset: 430; }
+    .arrow-r.go { animation: dash-right 0.6s ease forwards; }
+    .arrow-l { stroke-dasharray: 430; stroke-dashoffset: -430; }
+    .arrow-l.go { animation: dash-left 0.6s ease forwards; }
+    .pop { opacity: 0; }
+    .pop.go { animation: pop-in 0.4s cubic-bezier(.2,.8,.4,1) forwards; }
+    .pulse-r { }
+    .pulse-r.go { animation: pulse-red 1s ease infinite; }
+    .glow-g.go { animation: glow-green 1.5s ease infinite; }
+    .kem-label { font-size: 10px; fill: #8b949e; }
+    /* Timeline bar */
+    @keyframes bar-fill { from{width:0} to{width:100%} }
+    .timeline-fill { animation: bar-fill 2s ease forwards; }
+    /* HE comparison panels */
+    .he-panel { border-radius: 8px; padding: 16px; }
+    .he-panel-unsafe { background: #200d0d; border: 1px solid #f85149; }
+    .he-panel-safe   { background: #0d200d; border: 1px solid #3fb950; }
+    .flow-node { display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; font-weight: 600; padding: 8px 12px; text-align: center; }
+    .flow-connector { text-align: center; font-size: 18px; margin: 2px 0; color: var(--muted); }
+    .he-arrow-down { color: var(--muted); font-size: 20px; line-height: 1.2; }
+    .fn-client { background: #1a2233; border: 1px solid #58a6ff; color: #58a6ff; }
+    .fn-server-safe { background: #1a2a1a; border: 1px solid #3fb950; color: #3fb950; }
+    .fn-server-unsafe { background: #2a1a1a; border: 1px solid #f85149; color: #f85149; }
+    .fn-network { background: #21262d; border: 1px solid #30363d; color: #8b949e; }
+    .fn-encrypt { background: #2a2010; border: 1px solid #d29922; color: #d29922; }
+    .fn-result { background: #1a2a1a; border: 1px solid #3fb950; color: #3fb950; }
+    .he-step { opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
+    .he-step.show { opacity: 1; transform: translateY(0); }
+    .he-label { font-size: 11px; color: var(--muted); margin: 2px 0; text-align: center; }
   </style>
 </head>
 <body>
@@ -128,6 +169,54 @@
   <h2>ML-KEM-768 — Key Encapsulation</h2>
   <p>ML-KEM (NIST FIPS 203) replaces ECDH for key exchange. It is a Key Encapsulation Mechanism: the sender encapsulates a shared secret using the recipient's public key; only the recipient can decapsulate it.</p>
 
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:600;font-size:13px;">Key Encapsulation Flow</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playKEMFlow()">▶ Play</button>
+    </div>
+    <svg id="kem-svg" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;display:block;">
+      <defs>
+        <marker id="ka" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#58a6ff"/></marker>
+        <marker id="kb" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#3fb950"/></marker>
+        <marker id="kc" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#d29922"/></marker>
+      </defs>
+      <!-- Actor boxes -->
+      <rect x="10" y="20" width="140" height="160" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="80" y="42" text-anchor="middle" fill="#58a6ff" font-weight="700" font-size="12">Recipient</text>
+      <text x="80" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(workload / service)</text>
+
+      <rect x="285" y="20" width="150" height="160" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="360" y="42" text-anchor="middle" fill="#8b949e" font-weight="600" font-size="12">Network</text>
+
+      <rect x="570" y="20" width="140" height="160" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+      <text x="640" y="42" text-anchor="middle" fill="#d29922" font-weight="700" font-size="12">Sender</text>
+      <text x="640" y="57" text-anchor="middle" fill="#8b949e" font-size="10">(TLS peer / agent)</text>
+
+      <!-- Step 1: keygen -->
+      <text id="ks1" class="pop" x="80" y="80" text-anchor="middle" fill="#58a6ff" font-size="10">GenerateKey()</text>
+      <text id="ks1b" class="pop" x="80" y="94" text-anchor="middle" fill="#c9d1d9" font-size="9">dk (private, 2400B)</text>
+      <text id="ks1c" class="pop" x="80" y="107" text-anchor="middle" fill="#c9d1d9" font-size="9">ek (public, 1184B)</text>
+
+      <!-- Step 2: ek travels right -->
+      <line id="kar1" class="arrow-r" x1="152" y1="90" x2="578" y2="90" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ka)"/>
+      <text id="kal1" class="pop" x="360" y="83" text-anchor="middle" fill="#58a6ff" font-size="10">ek (encapsulation key, 1184 bytes)</text>
+
+      <!-- Step 3: sender encapsulates -->
+      <text id="ks3" class="pop" x="640" y="112" text-anchor="middle" fill="#d29922" font-size="10">Encapsulate(ek)</text>
+      <text id="ks3b" class="pop" x="640" y="126" text-anchor="middle" fill="#c9d1d9" font-size="9">→ (ct, ss₁)</text>
+
+      <!-- Step 4: ct travels left -->
+      <line id="kar2" class="arrow-l" x1="578" y1="142" x2="152" y2="142" stroke="#d29922" stroke-width="1.5" marker-end="url(#kc)"/>
+      <text id="kal2" class="pop" x="360" y="136" text-anchor="middle" fill="#d29922" font-size="10">ct (ciphertext, 1088 bytes)</text>
+
+      <!-- Step 5: decapsulate + match -->
+      <text id="ks5" class="pop" x="80" y="162" text-anchor="middle" fill="#3fb950" font-size="10">Decapsulate(ct) → ss₂</text>
+      <text id="ks5b" class="pop" x="80" y="175" text-anchor="middle" fill="#3fb950" font-size="10">ss₁ = ss₂ ✓</text>
+      <text id="ks5c" class="pop" x="640" y="162" text-anchor="middle" fill="#3fb950" font-size="10">ss₁ established</text>
+    </svg>
+    <p style="font-size:11px;color:var(--muted);margin:4px 0 0;text-align:center;">The private key dk never leaves the recipient. Only ek (public) and ct travel on the wire.</p>
+  </div>
+
   <div class="card">
     <button class="btn" onclick="runMLKEM()">Run ML-KEM-768 Demo</button>
     <div id="mlkem-result" class="result-box loading">Click to generate key pair and run encapsulation...</div>
@@ -153,6 +242,45 @@
 <div class="tab-panel" id="scene-mldsa">
   <h2>ML-DSA-65 — Digital Signatures</h2>
   <p>ML-DSA (NIST FIPS 204) replaces ECDSA for digital signatures. It is a lattice-based scheme with significantly larger keys and signatures than classical algorithms — but is quantum-safe.</p>
+
+  <!-- Animated sign/verify flow -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:600;font-size:13px;">Sign → Verify Flow &amp; Quantum Risk</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playDSAFlow()">▶ Play</button>
+    </div>
+    <svg id="dsa-svg" viewBox="0 0 720 242" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;display:block;">
+      <defs>
+        <marker id="da" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#58a6ff"/></marker>
+      </defs>
+      <!-- Static boxes -->
+      <rect x="10" y="10" width="140" height="205" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="80" y="32" text-anchor="middle" fill="#58a6ff" font-weight="700" font-size="12">JWT Issuer</text>
+      <text x="80" y="47" text-anchor="middle" fill="#8b949e" font-size="10">identity provider</text>
+      <rect x="570" y="10" width="140" height="205" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+      <text x="640" y="32" text-anchor="middle" fill="#d29922" font-weight="700" font-size="12">Verifier</text>
+      <text x="640" y="47" text-anchor="middle" fill="#8b949e" font-size="10">service / gateway</text>
+      <!-- Step 1: keygen (animated) -->
+      <text id="ds1"  x="80" y="73"  text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">GenerateKey()</text>
+      <text id="ds1b" x="80" y="88"  text-anchor="middle" fill="#8b949e" font-size="9"  opacity="0">priv: 4,032 B — never leaves issuer</text>
+      <text id="ds1c" x="80" y="103" text-anchor="middle" fill="#c9d1d9" font-size="9"  opacity="0">pub: 1,952 B — published in JWKS</text>
+      <!-- Step 2: sign (animated) -->
+      <text id="ds2"  x="80" y="133" text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">Sign(priv, payload)</text>
+      <text id="ds2b" x="80" y="148" text-anchor="middle" fill="#3fb950" font-size="9"  opacity="0">→ sig: 3,309 bytes</text>
+      <!-- Arrow: JWT travels right, x=150→570, y=158 -->
+      <line id="dar1" x1="150" y1="158" x2="569" y2="158" stroke="#58a6ff" stroke-width="1.5" opacity="0" marker-end="url(#da)"/>
+      <text id="dal1" x="360" y="150" text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">JWT: header . payload . ML-DSA-65-sig</text>
+      <!-- Step 3: verify (animated) -->
+      <text id="ds3"  x="640" y="175" text-anchor="middle" fill="#d29922" font-size="10" opacity="0">Verify(pub, sig, payload)</text>
+      <text id="ds3b" x="640" y="192" text-anchor="middle" fill="#3fb950" font-weight="700" font-size="11" opacity="0">✓ Valid</text>
+      <!-- Quantum risk callout (bottom band) -->
+      <rect id="drisk-bg" x="10"  y="220" width="140" height="20" rx="4" fill="#2a1010" opacity="0"/>
+      <text id="drisk"    x="80"  y="234" text-anchor="middle" fill="#f85149" font-size="8.5" opacity="0">ECDSA: Shor's recovers key on CRQC ⚠</text>
+      <rect id="dsafe-bg" x="570" y="220" width="140" height="20" rx="4" fill="#0a1a0a" opacity="0"/>
+      <text id="dsafe"    x="640" y="234" text-anchor="middle" fill="#3fb950" font-size="8.5" opacity="0">ML-DSA-65: lattice — CRQC-resistant ✓</text>
+    </svg>
+    <p style="font-size:11px;color:var(--muted);margin:6px 0 0;text-align:center;">Private key never leaves the issuer. Verifier only needs the public key (1,952 B). Classical ECDSA private key is recoverable by a CRQC via Shor's algorithm.</p>
+  </div>
 
   <div class="card">
     <button class="btn" onclick="runMLDSA()">Run ML-DSA-65 Demo</button>
@@ -199,29 +327,60 @@
     <div id="hybrid-result" class="result-box loading">Click to see X25519+ML-KEM-768 side by side...</div>
   </div>
 
-  <h3>Hybrid Protocol Flow</h3>
-  <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;margin:16px 0;">
-    <rect x="10" y="10" width="120" height="40" rx="6" fill="#21262d" stroke="#30363d"/>
-    <text x="70" y="35" text-anchor="middle" font-weight="600">Client</text>
-    <rect x="620" y="10" width="120" height="40" rx="6" fill="#21262d" stroke="#30363d"/>
-    <text x="680" y="35" text-anchor="middle" font-weight="600">Server</text>
-    <!-- Leg 1 -->
-    <line x1="130" y1="65" x2="620" y2="65" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4"/>
-    <text x="375" y="58" text-anchor="middle" fill="#58a6ff" font-size="10">Leg 1: X25519 public key (32 bytes)</text>
-    <polygon points="618,61 626,65 618,69" fill="#58a6ff"/>
-    <line x1="130" y1="90" x2="620" y2="90" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4"/>
-    <text x="375" y="83" text-anchor="middle" fill="#bc8cff" font-size="10">Leg 2: ML-KEM-768 encapsulation key (1184 bytes)</text>
-    <polygon points="618,86 626,90 618,94" fill="#bc8cff"/>
-    <!-- Response -->
-    <line x1="620" y1="120" x2="130" y2="120" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4"/>
-    <text x="375" y="113" text-anchor="middle" fill="#58a6ff" font-size="10">Leg 1 response: X25519 ECDH (32 bytes)</text>
-    <polygon points="132,116 124,120 132,124" fill="#58a6ff"/>
-    <line x1="620" y1="145" x2="130" y2="145" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4"/>
-    <text x="375" y="138" text-anchor="middle" fill="#bc8cff" font-size="10">Leg 2 response: ML-KEM ciphertext (1088 bytes)</text>
-    <polygon points="132,141 124,145 132,149" fill="#bc8cff"/>
-    <!-- KDF -->
-    <text x="375" y="180" text-anchor="middle" font-size="11" fill="#3fb950">Final secret = KDF(X25519_ss ‖ ML-KEM_ss) — break BOTH to win</text>
-  </svg>
+  <div class="card" style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:600;font-size:13px;">Two-Leg Handshake — Both Legs Must Be Broken to Win</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playHybridFlow()">▶ Play</button>
+    </div>
+    <svg id="hybrid-svg" viewBox="0 0 760 295" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;display:block;">
+      <defs>
+        <marker id="ha-b" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#58a6ff"/></marker>
+        <marker id="ha-p" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#bc8cff"/></marker>
+        <marker id="ha-g" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="#3fb950"/></marker>
+      </defs>
+      <!-- Static actor boxes -->
+      <rect x="10" y="10" width="130" height="255" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="75" y="32" text-anchor="middle" fill="#58a6ff" font-weight="700" font-size="12">Client</text>
+      <rect x="620" y="10" width="130" height="255" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+      <text x="685" y="32" text-anchor="middle" fill="#d29922" font-weight="700" font-size="12">Server</text>
+      <!-- Client keygen steps (animated) -->
+      <text id="hc1"  x="75" y="57"  text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">X25519 keygen</text>
+      <text id="hc1b" x="75" y="71"  text-anchor="middle" fill="#8b949e" font-size="9"  opacity="0">pub₁: 32 B</text>
+      <text id="hc2"  x="75" y="91"  text-anchor="middle" fill="#bc8cff" font-size="10" opacity="0">ML-KEM keygen</text>
+      <text id="hc2b" x="75" y="105" text-anchor="middle" fill="#8b949e" font-size="9"  opacity="0">ek: 1,184 B</text>
+      <!-- Leg labels (left of arrows) -->
+      <text id="hl1" x="80" y="62" text-anchor="middle" fill="#58a6ff" font-size="8.5" opacity="0" font-style="italic">Leg 1 →</text>
+      <text id="hl2" x="80" y="100" text-anchor="middle" fill="#bc8cff" font-size="8.5" opacity="0" font-style="italic">Leg 2 →</text>
+      <!-- Arrow 1: Client→Server, X25519 pub (y=68), blue -->
+      <line id="har1" x1="140" y1="68" x2="619" y2="68" stroke="#58a6ff" stroke-width="1.5" opacity="0" marker-end="url(#ha-b)"/>
+      <text id="hal1" x="380" y="60"  text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">Leg 1: X25519 pub (32 B)</text>
+      <!-- Arrow 2: Client→Server, ML-KEM ek (y=100), purple -->
+      <line id="har2" x1="140" y1="100" x2="619" y2="100" stroke="#bc8cff" stroke-width="1.5" opacity="0" marker-end="url(#ha-p)"/>
+      <text id="hal2" x="380" y="114" text-anchor="middle" fill="#bc8cff" font-size="10" opacity="0">Leg 2: ML-KEM ek (1,184 B)</text>
+      <!-- Server compute steps (animated) -->
+      <text id="hs1"  x="685" y="130" text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">ECDH(pub₁) → ss₁</text>
+      <text id="hs2"  x="685" y="152" text-anchor="middle" fill="#bc8cff" font-size="10" opacity="0">Encapsulate(ek)</text>
+      <text id="hs2b" x="685" y="167" text-anchor="middle" fill="#8b949e" font-size="9"  opacity="0">→ (ct, ss₂)</text>
+      <!-- Arrow 3: Server→Client, ECDH result (y=145), blue -->
+      <line id="har3" x1="620" y1="145" x2="141" y2="145" stroke="#58a6ff" stroke-width="1.5" opacity="0" marker-end="url(#ha-b)"/>
+      <text id="hal3" x="380" y="138" text-anchor="middle" fill="#58a6ff" font-size="10" opacity="0">Leg 1 resp: ECDH result (32 B)</text>
+      <!-- Arrow 4: Server→Client, ML-KEM ct (y=178), purple -->
+      <line id="har4" x1="620" y1="178" x2="141" y2="178" stroke="#bc8cff" stroke-width="1.5" opacity="0" marker-end="url(#ha-p)"/>
+      <text id="hal4" x="380" y="191" text-anchor="middle" fill="#bc8cff" font-size="10" opacity="0">Leg 2 resp: ML-KEM ct (1,088 B)</text>
+      <!-- Client post-receive (animated) -->
+      <text id="hc3"  x="75" y="203" text-anchor="middle" fill="#bc8cff" font-size="10" opacity="0">Decapsulate(ct)</text>
+      <text id="hc3b" x="75" y="218" text-anchor="middle" fill="#8b949e" font-size="9"  opacity="0">→ ss₂</text>
+      <!-- Server side mirrors -->
+      <text id="hs3"  x="685" y="203" text-anchor="middle" fill="#3fb950" font-size="10" opacity="0">ss₁ known ✓</text>
+      <text id="hs3b" x="685" y="218" text-anchor="middle" fill="#3fb950" font-size="9"  opacity="0">ss₂ known ✓</text>
+      <!-- KDF result (full width) -->
+      <rect id="hkdf-bg" x="10" y="240" width="740" height="22" rx="4" fill="#1a2a1a" opacity="0"/>
+      <text id="hkdf" x="380" y="256" text-anchor="middle" fill="#3fb950" font-weight="700" font-size="11" opacity="0">KDF(ss₁ ‖ ss₂) = session secret ✓ — break BOTH to win</text>
+      <!-- Risk annotation -->
+      <text id="hrisk" x="380" y="284" text-anchor="middle" fill="#8b949e" font-size="9.5" opacity="0">CRQC breaks X25519 via Shor's · ML-KEM-768 survives (lattice) · Combined: still safe</text>
+    </svg>
+    <p style="font-size:11px;color:var(--muted);margin:6px 0 0;text-align:center;">Each leg produces an independent shared secret. The session key is <code>KDF(ss₁ ‖ ss₂)</code> — an attacker must break both simultaneously.</p>
+  </div>
 </div>
 
 <!-- ============ AGILITY ============ -->
@@ -229,9 +388,9 @@
   <h2>Algorithm Negotiation &amp; Rotation</h2>
   <p>Crypto agility (RFC 7696) means a system can negotiate the strongest mutually-supported algorithm and rotate when threat level changes — without protocol changes.</p>
 
-  <div class="card">
+  <div class="card" style="margin-bottom:16px;">
     <h3 style="margin-top:0;">Algorithm Negotiation</h3>
-    <p>Each peer advertises its supported algorithms. The negotiation selects the strongest common algorithm: post-quantum &gt; hybrid &gt; classical.</p>
+    <p>Each peer advertises its supported algorithms. The negotiation picks the strongest common algorithm: post-quantum &gt; hybrid &gt; classical. Try a mix where only classical overlaps — watch the risk flag.</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
       <div>
         <label style="font-size:12px;color:var(--muted)">Local peer supports</label>
@@ -253,16 +412,22 @@
       <button class="btn" onclick="runNegotiate()">Negotiate</button>
     </div>
     <div id="negotiate-result" class="result-box loading">Select peer capabilities and click Negotiate...</div>
+    <!-- Visual negotiation panel (populated by runNegotiate) -->
+    <div id="negotiate-viz" style="display:none;margin-top:14px;"></div>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Threat Level → Key Rotation Policy</h3>
-    <p>As the quantum threat evolves, the active algorithm set must change. The rotation policy maps threat level to required algorithms.</p>
+    <h3 style="margin-top:0;">Threat Level → Algorithm Rotation</h3>
+    <p>As the quantum threat evolves, the active algorithm set must change — without protocol changes. Each level shows which algorithms are required and why.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
       <button class="btn btn-secondary" onclick="runRotation('none')">None</button>
       <button class="btn btn-secondary" onclick="runRotation('emerging')">Emerging</button>
       <button class="btn btn-secondary" onclick="runRotation('imminent')">Imminent</button>
       <button class="btn btn-secondary" onclick="runRotation('active')">Active (CRQC)</button>
+    </div>
+    <!-- Visual threat meter -->
+    <div id="threat-meter" style="display:none;margin-bottom:12px;padding:12px;background:var(--surface2);border-radius:6px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="threat-cols"></div>
     </div>
     <div id="rotation-result" class="result-box loading">Select a threat level to see the rotation policy...</div>
   </div>
@@ -271,10 +436,85 @@
 <!-- ============ HE INFERENCE ============ -->
 <div class="tab-panel" id="scene-he">
   <h2>Private AI Inference — Homomorphic Encryption</h2>
-  <p>Homomorphic encryption (HE) allows computation on encrypted data without decrypting. The server runs the AI model on your encrypted query and returns an encrypted result — it never sees the plaintext inputs or outputs.</p>
+  <p>When you query an AI model, the server sees your raw inputs — your prompts, your data, your query intent. Homomorphic encryption (HE) changes this: the server computes on <em>encrypted</em> inputs and returns an <em>encrypted</em> result. It never sees plaintext at any point.</p>
 
-  <div class="callout">
-    <strong>HEIR (Homomorphic Encryption Intermediate Representation)</strong> — Google's open-source compiler IR for HE programs. Lowers HE operations to hardware-optimised instruction sequences, making practical HE inference feasible. Not an IETF standard.
+  <!-- WHY IT MATTERS: animated comparison -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-weight:700;font-size:14px;">Why Private Inference Matters</span>
+      <button class="btn" style="font-size:12px;padding:5px 14px;" onclick="playHEFlow()">▶ Play Flow</button>
+    </div>
+    <div class="grid2" style="gap:20px;align-items:start;">
+
+      <!-- LEFT: Without HE (danger) -->
+      <div class="he-panel he-panel-unsafe">
+        <div style="text-align:center;font-weight:700;font-size:13px;color:#f85149;margin-bottom:14px;">❌ Without HE (today's default)</div>
+
+        <div id="he-c1" class="he-step flow-node fn-client">Client holds: inputs = [5, 3, 8]</div>
+        <div id="he-a1" class="he-step he-label">↓ sends <strong style="color:#f85149;">plaintext</strong></div>
+        <div id="he-n1" class="he-step flow-node fn-network">Network: data exposed in transit</div>
+        <div id="he-a2" class="he-step he-label">↓</div>
+        <div id="he-s1" class="he-step flow-node fn-server-unsafe" style="flex-direction:column;gap:2px;">
+          <span>Server: sees [5, 3, 8] ⚠</span>
+          <span style="font-size:10px;font-weight:400;color:#8b949e;">logs your query · fingerprints your data · stores inputs</span>
+        </div>
+        <div id="he-a3" class="he-step he-label">↓ plaintext result</div>
+        <div id="he-r1" class="he-step flow-node fn-server-unsafe">Server also sees your result: 5.2</div>
+
+        <div id="he-risk" class="he-step" style="margin-top:12px;padding:8px;background:#1a0a0a;border-radius:6px;font-size:11px;color:#f85149;">
+          <strong>Exposure surface:</strong> query intent, proprietary data, user behaviour, results — all visible to the model provider, logged, and potentially breachable.
+        </div>
+      </div>
+
+      <!-- RIGHT: With HE (safe) -->
+      <div class="he-panel he-panel-safe">
+        <div style="text-align:center;font-weight:700;font-size:13px;color:#3fb950;margin-bottom:14px;">✓ With Homomorphic Encryption</div>
+
+        <div id="he-c2" class="he-step flow-node fn-client">Client holds: inputs = [5, 3, 8]</div>
+        <div id="he-e1" class="he-step he-label">↓ HE.Encrypt()</div>
+        <div id="he-enc" class="he-step flow-node fn-encrypt">Ciphertexts: [X₁, X₂, X₃] — opaque blobs</div>
+        <div id="he-a4" class="he-step he-label">↓ sends <strong style="color:#3fb950;">only ciphertexts</strong></div>
+        <div id="he-s2" class="he-step flow-node fn-server-safe" style="flex-direction:column;gap:2px;">
+          <span>Server: sees ??? (ciphertexts only)</span>
+          <span style="font-size:10px;font-weight:400;color:#8b949e;">applies model weights · computes dot product on ciphertexts</span>
+        </div>
+        <div id="he-a5" class="he-step he-label">↓ encrypted result</div>
+        <div id="he-er" class="he-step flow-node fn-encrypt">Encrypted output: [R] — server never decrypts</div>
+        <div id="he-a6" class="he-step he-label">↓ HE.Decrypt() — client only</div>
+        <div id="he-r2" class="he-step flow-node fn-result" id="he-r2">Result: 5.2 (plaintext, client-only)</div>
+
+        <div id="he-safe" class="he-step" style="margin-top:12px;padding:8px;background:#0a1a0a;border-radius:6px;font-size:11px;color:#3fb950;">
+          <strong>Server's view:</strong> three opaque blobs in, one opaque blob out. Zero knowledge of your data, query intent, or result.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key property: why math works -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;">The Homomorphic Property — Why Math Works on Ciphertexts</div>
+    <div class="grid2" style="gap:16px;font-size:12px;">
+      <div>
+        <p style="margin-bottom:8px;">In additive HE, <code>Dec(Enc(a) + Enc(b)) = a + b</code> without ever decrypting a or b individually.</p>
+        <p>This means a dot product (the core of every neural network layer) can run entirely on ciphertexts:</p>
+        <pre style="font-size:11px;">result_enc = Σ (Enc(input_i) × weight_i)
+result     = Decrypt(result_enc)
+           = Σ (input_i × weight_i)</pre>
+      </div>
+      <div>
+        <p><strong>HE scheme families:</strong></p>
+        <ul style="list-style:none;padding:0;color:var(--muted);">
+          <li style="padding:3px 0;"><strong style="color:var(--text);">BFV / BGV</strong> — exact integers · batching · database queries</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">CKKS</strong> — approximate floats · neural network inference · ML</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">TFHE</strong> — boolean circuits · arbitrary programs · slower</li>
+          <li style="padding:3px 0;"><strong style="color:var(--text);">HEIR</strong> — Google's IR compiler targeting all three</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:16px;">
+    <strong>HEIR (Homomorphic Encryption Intermediate Representation)</strong> — Google's open-source compiler IR for HE programs, lowering HE operations to hardware-optimised instruction sequences. Not an IETF standard, but the leading open approach to making HE inference practical at inference-server scale.
   </div>
 
   <div class="card">
@@ -309,7 +549,75 @@
 <!-- ============ IDENTITY TRANSITION ============ -->
 <div class="tab-panel" id="scene-identity">
   <h2>Identity &amp; Auth Token Transition</h2>
-  <p>WIMSE workload identity tokens (WIT), agent tokens, and mTLS certificates all use classical algorithms today. The transition to PQC affects every layer.</p>
+  <p>WIMSE workload identity tokens (WIT), agent tokens, and mTLS certificates all use classical algorithms today. The transition to PQC affects every layer — and the threat begins <em>now</em>, not when a CRQC exists.</p>
+
+  <!-- Harvest Now, Decrypt Later animated comparison -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span style="font-weight:700;font-size:14px;">Harvest Now, Decrypt Later — Why Transition Starts Today</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playHarvestNow()">▶ Play</button>
+    </div>
+    <!-- Two-row comparison: Classical (danger) vs PQC (safe) -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <!-- Row labels -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0;font-size:10px;color:var(--muted);text-align:center;padding:0 8px;">
+        <span>2025 — Today</span><span></span><span>2027–28 — Stored</span><span></span><span>2030+ — CRQC Era</span>
+      </div>
+      <!-- Classical row (danger) -->
+      <div style="background:#1a0808;border:1px solid #f8514940;border-radius:6px;padding:10px;">
+        <div style="font-size:11px;font-weight:700;color:#f85149;margin-bottom:8px;">Classical (ECDSA P-256 / ES256)</div>
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;align-items:center;gap:2px;">
+          <div id="hn-c1" class="he-step" style="background:#21262d;border:1px solid #58a6ff;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#58a6ff;">Agent issues<br><code style="font-size:10px;">alg: ES256</code><br>JWT</div>
+          <div id="hn-a1" class="he-step" style="text-align:center;font-size:16px;color:#f85149;">→</div>
+          <div id="hn-v1" class="he-step" style="background:#21262d;border:1px solid #f85149;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#f85149;">Attacker records<br>📦 encrypted vault<br><span style="font-size:9px;color:#8b949e;">waits for CRQC</span></div>
+          <div id="hn-a2" class="he-step" style="text-align:center;font-size:16px;color:#f85149;">→</div>
+          <div id="hn-r1" class="he-step" style="background:#2a1010;border:1px solid #f85149;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#f85149;"><strong>Shor's algorithm</strong><br>recovers EC priv key<br><span style="color:#d29922;font-size:10px;">⚠ Forges tokens!</span></div>
+        </div>
+      </div>
+      <!-- PQC row (safe) -->
+      <div style="background:#081a08;border:1px solid #3fb95040;border-radius:6px;padding:10px;">
+        <div style="font-size:11px;font-weight:700;color:#3fb950;margin-bottom:8px;">Post-Quantum (ML-DSA-65 / FIPS 204)</div>
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;align-items:center;gap:2px;">
+          <div id="hn-c2" class="he-step" style="background:#21262d;border:1px solid #3fb950;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#3fb950;">Agent issues<br><code style="font-size:10px;">alg: ML-DSA-65</code><br>JWT</div>
+          <div id="hn-a3" class="he-step" style="text-align:center;font-size:16px;color:#8b949e;">→</div>
+          <div id="hn-v2" class="he-step" style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#8b949e;">Attacker records<br>📦 encrypted vault<br><span style="font-size:9px;color:#8b949e;">waits for CRQC</span></div>
+          <div id="hn-a4" class="he-step" style="text-align:center;font-size:16px;color:#8b949e;">→</div>
+          <div id="hn-r2" class="he-step" style="background:#0a1a0a;border:1px solid #3fb950;border-radius:4px;padding:6px;font-size:11px;text-align:center;color:#3fb950;"><strong>Shor's tries lattice</strong><br>No known attack<br><span style="font-size:10px;">✓ Cannot forge</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin:10px 0 0;">Adversaries are recording today's JWT traffic. Tokens signed with ECDSA can be retroactively broken once a CRQC exists. Tokens signed with ML-DSA-65 are safe even in the CRQC era — lattice problems have no known quantum speedup.</p>
+  </div>
+
+  <!-- SPIFFE / SVID migration animated steps -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:600;font-size:13px;">SPIFFE / SVID Migration Roadmap</span>
+      <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px;" onclick="playMigration()">▶ Play</button>
+    </div>
+    <div id="migration-steps" style="display:flex;flex-direction:column;gap:8px;">
+      <div id="ms1" class="he-step" style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--surface2);border-radius:6px;border-left:3px solid #58a6ff;">
+        <span style="background:#58a6ff;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;">1</span>
+        <div><strong style="color:#58a6ff;">Add ML-DSA-65 signing key to SPIRE server</strong><br><span style="font-size:12px;color:var(--muted);">Both EC and ML-DSA keys active. SPIRE issues classical SVIDs only.</span></div>
+      </div>
+      <div id="ms2" class="he-step" style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--surface2);border-radius:6px;border-left:3px solid #d29922;">
+        <span style="background:#d29922;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;">2</span>
+        <div><strong style="color:#d29922;">Issue hybrid SVIDs (ECDSA + ML-DSA-65)</strong><br><span style="font-size:12px;color:var(--muted);">Both certs included. Workloads negotiate the strongest mutual algorithm on connect.</span></div>
+      </div>
+      <div id="ms3" class="he-step" style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--surface2);border-radius:6px;border-left:3px solid #bc8cff;">
+        <span style="background:#bc8cff;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;">3</span>
+        <div><strong style="color:#bc8cff;">Rotate TLS key exchange to X25519+ML-KEM-768</strong><br><span style="font-size:12px;color:var(--muted);">Configure TLS 1.3 hybrid group. All new sessions use both legs.</span></div>
+      </div>
+      <div id="ms4" class="he-step" style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--surface2);border-radius:6px;border-left:3px solid #3fb950;">
+        <span style="background:#3fb950;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;">4</span>
+        <div><strong style="color:#3fb950;">Decommission classical signing key (after SVID TTL expires)</strong><br><span style="font-size:12px;color:var(--muted);">Wait for all outstanding SVIDs to expire. Rotate Root CA to ML-DSA-87.</span></div>
+      </div>
+      <div id="ms5" class="he-step" style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:#0a1a0a;border-radius:6px;border-left:3px solid #3fb950;">
+        <span style="background:#3fb950;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;">✓</span>
+        <div><strong style="color:#3fb950;">Full PQC posture — CRQC-ready</strong><br><span style="font-size:12px;color:var(--muted);">All identity tokens, key exchanges, and certs use quantum-safe algorithms.</span></div>
+      </div>
+    </div>
+  </div>
 
   <div class="grid2">
     <div class="card">
@@ -322,7 +630,7 @@
 }
 Payload:
 {
-  "sub": "spiffe://bank.internal/agent",
+  "sub": "spiffe://mesh.internal/workload",
   "cnf": { "jkt": "&lt;EC P-256 thumbprint&gt;" }
 }</pre>
     </div>
@@ -336,7 +644,7 @@ Payload:
 }
 Payload:
 {
-  "sub": "spiffe://bank.internal/agent",
+  "sub": "spiffe://mesh.internal/workload",
   "cnf": { "jkt": "&lt;ML-KEM-768 thumbprint&gt;" }
 }</pre>
     </div>
@@ -354,7 +662,7 @@ Payload:
   </table>
 
   <div class="callout warn" style="margin-top:16px;">
-    <strong>Crypto agility in SPIRE:</strong> SPIRE Server signing key must be rotated to ML-DSA before SVID TTL expires after transition. Plan key rotation windows during low-traffic periods. SVID renewals will fail if the new signing key algorithm is not supported by agents.
+    <strong>Crypto agility in SPIRE:</strong> SPIRE Server signing key must be rotated to ML-DSA before SVID TTL expires. Plan key rotation windows carefully — SVID renewals fail if the signing algorithm is not supported by the SPIRE agent version.
   </div>
 </div>
 
@@ -483,6 +791,175 @@ function show(id, html) {
   document.getElementById(id).innerHTML = html;
 }
 
+// ── Animated flow controllers ──────────────────────────────────────────────
+
+// ── Shared animation helpers ───────────────────────────────────────────────
+
+function svgPop(id, delay) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'opacity 0.35s ease';
+    el.style.opacity = '1';
+  }, delay);
+}
+
+function svgDrawLine(id, len, forward, delay) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.strokeDasharray = len;
+    el.style.strokeDashoffset = forward ? len : -len;
+    el.style.opacity = '1';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'stroke-dashoffset 0.58s cubic-bezier(.4,0,.2,1)';
+      el.style.strokeDashoffset = '0';
+    }));
+  }, delay);
+}
+
+function svgReset(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+    el.style.strokeDashoffset = '';
+    el.style.strokeDasharray = '';
+  });
+}
+
+// ── ML-DSA sign/verify animation ──────────────────────────────────────────
+
+function playDSAFlow() {
+  svgReset(['ds1','ds1b','ds1c','ds2','ds2b','dar1','dal1','ds3','ds3b','drisk-bg','drisk','dsafe-bg','dsafe']);
+  svgPop('ds1',   0);
+  svgPop('ds1b',  400);
+  svgPop('ds1c',  700);
+  svgPop('ds2',   1300);
+  svgPop('ds2b',  1700);
+  svgDrawLine('dar1', 420, true, 2200);
+  svgPop('dal1',  2200);
+  svgPop('ds3',   2950);
+  svgPop('ds3b',  3350);
+  svgPop('drisk-bg', 3900); svgPop('drisk', 3900);
+  svgPop('dsafe-bg', 3900); svgPop('dsafe', 3900);
+}
+
+// ── Hybrid KEM two-leg animation ──────────────────────────────────────────
+
+function playHybridFlow() {
+  const all = ['hc1','hc1b','hc2','hc2b','hl1','hl2',
+               'har1','hal1','har2','hal2',
+               'hs1','hs2','hs2b','har3','hal3','har4','hal4',
+               'hc3','hc3b','hs3','hs3b','hkdf-bg','hkdf','hrisk'];
+  svgReset(all);
+  // Client keygen
+  svgPop('hc1', 0);   svgPop('hc1b', 350);
+  svgPop('hc2', 600); svgPop('hc2b', 950);
+  svgPop('hl1', 1300); svgPop('hl2', 1300);
+  // Leg 1 and Leg 2 travel right (staggered 300ms)
+  svgDrawLine('har1', 480, true, 1500); svgPop('hal1', 1500);
+  svgDrawLine('har2', 480, true, 1800); svgPop('hal2', 1800);
+  // Server computes
+  svgPop('hs1', 2600); svgPop('hs2', 2900); svgPop('hs2b', 3100);
+  // Responses travel left
+  svgDrawLine('har3', 480, false, 3400); svgPop('hal3', 3400);
+  svgDrawLine('har4', 480, false, 3700); svgPop('hal4', 3700);
+  // Client + server complete
+  svgPop('hc3', 4400);  svgPop('hc3b', 4700);
+  svgPop('hs3', 4400);  svgPop('hs3b', 4700);
+  // KDF + risk
+  svgPop('hkdf-bg', 5100); svgPop('hkdf', 5100);
+  svgPop('hrisk', 5600);
+}
+
+// ── Harvest Now Decrypt Later animation ───────────────────────────────────
+
+function playHarvestNow() {
+  const ids = ['hn-c1','hn-a1','hn-v1','hn-a2','hn-r1',
+               'hn-c2','hn-a3','hn-v2','hn-a4','hn-r2'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(6px)'; }
+  });
+  ids.forEach((id, i) => setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+  }, i * 450));
+}
+
+// ── SPIFFE migration checklist animation ──────────────────────────────────
+
+function playMigration() {
+  const ids = ['ms1','ms2','ms3','ms4','ms5'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateX(-12px)'; }
+  });
+  ids.forEach((id, i) => setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(0)';
+  }, i * 700));
+}
+
+// ── Algorithm negotiation visual ──────────────────────────────────────────
+
+function algBadge(name, type, inIntersection) {
+  const typeClass = type === 'post-quantum' ? 'tag-safe' : type === 'hybrid' ? 'tag-hybrid' : 'tag-classical';
+  const border = inIntersection ? '2px solid #3fb950' : '1px solid #30363d';
+  return `<div style="padding:4px 8px;border-radius:4px;background:var(--surface2);border:${border};font-size:11px;font-family:var(--mono);">${name}</div>`;
+}
+
+function playKEMFlow() {
+  const allIds = ['ks1','ks1b','ks1c','kar1','kal1','ks3','ks3b','kar2','kal2','ks5','ks5b','ks5c'];
+  allIds.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('go'); });
+  // Sequence: keygen → ek travels right → sender encapsulates → ct travels left → both derive ss
+  const beats = [
+    { ids: ['ks1'],           delay: 0    },
+    { ids: ['ks1b','ks1c'],   delay: 450  },
+    { ids: ['kar1','kal1'],   delay: 950  },
+    { ids: ['ks3'],           delay: 1700 },
+    { ids: ['ks3b'],          delay: 2100 },
+    { ids: ['kar2','kal2'],   delay: 2550 },
+    { ids: ['ks5','ks5b'],    delay: 3300 },
+    { ids: ['ks5c'],          delay: 3300 },
+  ];
+  beats.forEach(b => setTimeout(() => b.ids.forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('go');
+  }), b.delay));
+}
+
+function playHEFlow() {
+  document.querySelectorAll('.he-step').forEach(el => el.classList.remove('show'));
+  // Reveal in pairs (left panel, right panel) so the viewer sees the contrast live
+  const pairs = [
+    ['he-c1',   'he-c2'  ],  // t=0:   both clients hold inputs
+    ['he-a1',   'he-e1'  ],  // t=500: left sends plaintext · right encrypts
+    ['he-n1',   'he-enc' ],  // t=1000: network exposed · ciphertexts ready
+    ['he-a2',   'he-a4'  ],  // t=1500: arrows down
+    ['he-s1',   'he-s2'  ],  // t=2000: server sees data ⚠ · server sees ??? ✓
+    ['he-a3',   'he-a5'  ],  // t=2500: result arrows
+    ['he-r1',   'he-er'  ],  // t=3000: plaintext result · encrypted output
+    ['he-risk', 'he-a6'  ],  // t=3500: risk callout · client decrypt step
+    [null,      'he-r2'  ],  // t=4000: right: plaintext result (client only)
+    [null,      'he-safe'],  // t=4500: right: safe summary
+  ];
+  pairs.forEach(([left, right], i) => setTimeout(() => {
+    [left, right].forEach(id => {
+      if (!id) return;
+      const el = document.getElementById(id); if (el) el.classList.add('show');
+    });
+  }, i * 500));
+}
+
 function fmt(obj) {
   return "<pre>" + JSON.stringify(obj, null, 2) + "</pre>";
 }
@@ -582,28 +1059,79 @@ function runHybridKEM() {
 
 function runNegotiate() {
   if (!requireWasm()) return;
-  const local = document.getElementById("local-preset").value;
-  const remote = document.getElementById("remote-preset").value;
-  const r = agilityNegotiateDemo(local, remote);
+  const localVal = document.getElementById("local-preset").value;
+  const remoteVal = document.getElementById("remote-preset").value;
+  const r = agilityNegotiateDemo(localVal, remoteVal);
+  const viz = document.getElementById("negotiate-viz");
   if (!r.ok) {
-    show("negotiate-result", `<span class='err'>No common algorithm found. ${r.error}</span>`);
+    show("negotiate-result", `<span class='err'>No common algorithm found — connection refused. ${r.error}</span>`);
+    if (viz) { viz.style.display = 'none'; }
     return;
   }
   const typeColor = r.type === "post-quantum" ? "tag-safe" : r.type === "hybrid" ? "tag-hybrid" : "tag-classical";
+  const riskNote = r.quantum_safe ? '' : `<div style='margin-top:8px;padding:6px 10px;background:#2a2010;border-radius:4px;font-size:12px;color:#d29922;'>⚠ Classical algorithm selected — not quantum-safe. Consider upgrading peers to support PQC.</div>`;
   show("negotiate-result", `
-    <div style='margin-bottom:10px;'>
+    <div style='margin-bottom:6px;'>
       Selected: <strong>${r.selected}</strong>
       <span class='tag ${typeColor}'>${r.type}</span>
       Quantum-safe: <span class='${r.quantum_safe?"ok":"err"}'>${r.quantum_safe}</span>
     </div>
     <div style='font-size:12px;color:var(--muted);'>${r.reason}</div>
+    ${riskNote}
   `);
+  // Visual breakdown
+  if (viz) {
+    const localAlgs = JSON.parse(localVal);
+    const remoteAlgs = JSON.parse(remoteVal);
+    const intersection = localAlgs.filter(a => remoteAlgs.includes(a));
+    const mkList = (algs, highlight) => algs.map(a =>
+      `<div style="padding:3px 7px;border-radius:4px;background:var(--surface2);font-size:11px;font-family:monospace;border:${a === r.selected ? '2px solid #3fb950' : intersection.includes(a) ? '1px solid #58a6ff50' : '1px solid #30363d'};color:${a === r.selected ? '#3fb950' : '#c9d1d9'};">${a === r.selected ? '★ ' : ''}${a}</div>`
+    ).join('');
+    viz.style.display = 'block';
+    viz.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">Local peer</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">${mkList(localAlgs)}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;padding-top:20px;">
+          <div style="font-size:20px;color:#30363d;">↔</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">Remote peer</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">${mkList(remoteAlgs)}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:8px;background:#0a1a0a;border-radius:4px;font-size:12px;">
+        <span style="color:#3fb950;font-weight:600;">★ Winner: ${r.selected}</span>
+        — preference: PostQuantum &gt; Hybrid &gt; Classical. ${intersection.length} common algorithm${intersection.length===1?'':'s'} found.
+      </div>
+    `;
+  }
 }
 
 function runRotation(level) {
   if (!requireWasm()) return;
   const r = keyRotationDemo(level);
   if (!r.ok) { show("rotation-result", `<span class='err'>${r.error}</span>`); return; }
+  // Visual threat meter
+  const meter = document.getElementById('threat-meter');
+  const cols = document.getElementById('threat-cols');
+  if (meter && cols) {
+    meter.style.display = 'block';
+    const levelColors = { none:'#3fb950', emerging:'#d29922', imminent:'#ffa657', active:'#f85149' };
+    const levelLabels = { none:'None', emerging:'Emerging', imminent:'Imminent', active:'Active (CRQC)' };
+    cols.innerHTML = r.all_levels.map(l => {
+      const isActive = l.active;
+      const col = levelColors[l.level] || '#8b949e';
+      return `<div style="padding:8px;border-radius:6px;background:${isActive ? '#21262d' : 'transparent'};border:${isActive ? '2px solid '+col : '1px solid #30363d'};transition:all .3s;">
+        <div style="font-size:11px;font-weight:700;color:${col};margin-bottom:4px;">${levelLabels[l.level]||l.level}</div>
+        <div style="font-size:10px;color:#8b949e;font-family:monospace;">${l.sig_alg}</div>
+        <div style="font-size:10px;color:#8b949e;font-family:monospace;margin-top:2px;">${l.kem_alg}</div>
+        ${isActive ? `<div style="margin-top:4px;font-size:9.5px;color:${col};">▲ active</div>` : ''}
+      </div>`;
+    }).join('');
+  }
   const rows = r.all_levels.map(l => {
     const cls = l.active ? " class='active-row'" : "";
     return `<tr${cls}><td>${l.active ? "→ " : ""}<strong>${l.level}</strong></td><td><code>${l.sig_alg}</code></td><td><code>${l.kem_alg}</code></td><td style='color:var(--muted);font-size:12px;'>${l.description}</td></tr>`;
