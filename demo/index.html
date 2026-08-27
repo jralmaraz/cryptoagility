@@ -256,6 +256,59 @@
     </div>
   </div>
 
+  <h3>HNDL Risk Calculator — Confidentiality Horizon</h3>
+  <p style="font-size:13px;">How urgent is your HNDL risk? Enter your data profile to see where you stand on the confidentiality horizon.</p>
+  <div class="card" style="margin-bottom:4px;">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Data must stay confidential for…</div>
+        <div style="display:flex;gap:6px;" id="hndl-lifetime-btns">
+          <button class="btn btn-secondary hndl-lt" data-lt="1" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('lt',1,this)">≤ 1 year</button>
+          <button class="btn btn-secondary hndl-lt" data-lt="5" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('lt',5,this)">5 years</button>
+          <button class="btn btn-secondary hndl-lt" data-lt="10" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('lt',10,this)">10 years</button>
+          <button class="btn btn-secondary hndl-lt" data-lt="25" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('lt',25,this)">25+ years</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Data classification</div>
+        <div style="display:flex;gap:6px;" id="hndl-sens-btns">
+          <button class="btn btn-secondary hndl-sens" data-sens="low" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('sens','low',this)">Internal</button>
+          <button class="btn btn-secondary hndl-sens" data-sens="high" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('sens','high',this)">Confidential</button>
+          <button class="btn btn-secondary hndl-sens" data-sens="regulated" style="font-size:11px;padding:4px 10px;" onclick="selectHNDL('sens','regulated',this)">Regulated / Secret</button>
+        </div>
+      </div>
+    </div>
+    <!-- Timeline visualization -->
+    <div id="hndl-result" style="display:none;">
+      <div style="overflow-x:auto;">
+      <svg id="hndl-svg" viewBox="0 0 620 80" width="100%" style="font-family:var(--mono);border-radius:6px;background:#0d1117;padding:2px;display:block;">
+        <!-- base timeline bar -->
+        <rect x="20" y="30" width="580" height="8" rx="3" fill="#21262d"/>
+        <!-- today marker -->
+        <line x1="20" y1="20" x2="20" y2="46" stroke="#58a6ff" stroke-width="2"/>
+        <text x="20" y="15" text-anchor="middle" font-size="8" fill="#58a6ff">2026</text>
+        <text x="20" y="60" text-anchor="middle" font-size="7" fill="#8b949e">Today</text>
+        <!-- CRQC estimate marker -->
+        <line x1="350" y1="20" x2="350" y2="46" stroke="#bc8cff" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="350" y="15" text-anchor="middle" font-size="8" fill="#bc8cff">~2031</text>
+        <text x="350" y="60" text-anchor="middle" font-size="7" fill="#bc8cff">CRQC estimate</text>
+        <!-- data expiry marker (dynamic) -->
+        <line id="hndl-expiry-line" x1="480" y1="20" x2="480" y2="46" stroke="#d29922" stroke-width="2"/>
+        <text id="hndl-expiry-yr" x="480" y="15" text-anchor="middle" font-size="8" fill="#d29922">2036</text>
+        <text id="hndl-expiry-lbl" x="480" y="60" text-anchor="middle" font-size="7" fill="#d29922">Data expires</text>
+        <!-- risk fill (dynamic) -->
+        <rect id="hndl-risk-fill" x="20" y="30" width="330" height="8" rx="3" fill="#f8514980"/>
+        <!-- safe fill (to expiry) -->
+        <rect id="hndl-safe-fill" x="350" y="30" width="130" height="8" rx="0" fill="#3fb95040"/>
+        <!-- end marker -->
+        <line x1="600" y1="20" x2="600" y2="46" stroke="#30363d" stroke-width="1"/>
+        <text x="600" y="15" text-anchor="middle" font-size="8" fill="#30363d">2051</text>
+      </svg>
+      </div>
+      <div id="hndl-verdict" style="margin-top:10px;padding:8px 12px;border-radius:6px;font-size:12px;"></div>
+    </div>
+  </div>
+
   <h3>Two-Track Migration Model</h3>
   <p>Run key-exchange migration and signature/PKI migration as <strong>parallel tracks</strong> — they have different urgency drivers, different algorithms, and different operational constraints.</p>
   <div class="grid2" style="margin-top:10px;">
@@ -779,6 +832,43 @@ result     = Decrypt(result_enc)
 
   <div class="callout danger" style="margin-bottom:16px;">
     <strong>Trust Now, Forge Later (TNFL)</strong> — Adversaries harvest signed JWTs, X.509 certificates, and their corresponding public keys today. Once a CRQC arrives, Shor's algorithm recovers the EC private key — enabling retroactive forgery of any token or certificate previously signed by that key. This is a distinct threat from HNDL (which targets encrypted data): TNFL targets <em>authenticity and non-repudiation</em>. JWTs do not need to be decrypted to be exploited — the attacker forges new ones. Migrating signing to ML-DSA eliminates this risk.
+  </div>
+
+  <!-- TNFL interactive attack simulator -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-weight:700;font-size:14px;">Simulate TNFL Signature Forgery Attack</span>
+      <button class="btn btn-secondary" id="tnfl-btn" style="font-size:12px;padding:5px 12px;" onclick="runTNFLAttack(this)">▶ Run Attack</button>
+    </div>
+    <!-- SVG: classical vs quantum racing to crack EC key -->
+    <div style="overflow-x:auto;">
+    <svg viewBox="0 0 620 110" width="100%" style="font-family:var(--mono);border-radius:6px;background:#0d1117;padding:4px;">
+      <!-- Classical computer -->
+      <text x="12" y="22" font-size="10" fill="#8b949e">Classical computer</text>
+      <text x="12" y="36" font-size="8" fill="#58a6ff">Brute-force EC P-256 key recovery · ~2¹²⁸ ops</text>
+      <rect x="12" y="44" width="596" height="13" rx="3" fill="#21262d"/>
+      <rect id="tnfl-classical-bar" x="12" y="44" width="0" height="13" rx="3" fill="#58a6ff"/>
+      <text id="tnfl-classical-pct" x="310" y="54" text-anchor="middle" font-size="7" fill="#e6edf3">0 %</text>
+      <text id="tnfl-classical-note" x="12" y="70" font-size="8" fill="#8b949e">→ estimated completion: heat death of universe</text>
+      <!-- Quantum CRQC -->
+      <text x="12" y="84" font-size="10" fill="#bc8cff">Quantum CRQC — Shor's Algorithm</text>
+      <text x="12" y="96" font-size="8" fill="#f85149">QFT + period finding · O(n³) · seconds</text>
+      <rect x="12" y="100" width="596" height="13" rx="3" fill="#21262d"/>
+      <rect id="tnfl-quantum-bar" x="12" y="100" width="0" height="13" rx="3" fill="#bc8cff"/>
+      <text id="tnfl-quantum-pct" x="310" y="110" text-anchor="middle" font-size="7" fill="#e6edf3">0 %</text>
+    </svg>
+    </div>
+    <!-- Step reveal -->
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
+      <div id="tnfl-s1" class="he-step" style="padding:7px 10px;background:var(--surface2);border-radius:5px;border-left:3px solid #58a6ff;font-size:12px;"><strong style="color:#58a6ff;">Step 1 — Today:</strong> Agent signs JWT with <code>alg: ES256</code> (ECDSA P-256). Adversary intercepts: captures the signed JWT and the corresponding EC public key Q = k·G from JWKS.</div>
+      <div id="tnfl-s2" class="he-step" style="padding:7px 10px;background:var(--surface2);border-radius:5px;border-left:3px solid #d29922;font-size:12px;"><strong style="color:#d29922;">Step 2 — Stored:</strong> Adversary archives the signed JWT + public key. Classical computers cannot recover private key k. The adversary waits.</div>
+      <div id="tnfl-s3" class="he-step" style="padding:7px 10px;background:var(--surface2);border-radius:5px;border-left:3px solid #bc8cff;font-size:12px;"><strong style="color:#bc8cff;">Step 3 — CRQC era:</strong> A cryptographically-relevant quantum computer becomes available. Shor's algorithm applies Quantum Fourier Transform to solve the Elliptic Curve Discrete Logarithm Problem, recovering private key k in seconds.</div>
+      <div id="tnfl-s4" class="he-step" style="padding:7px 10px;background:#2a1010;border-radius:5px;border-left:3px solid #f85149;font-size:12px;"><strong style="color:#f85149;">Step 4 — Forgery:</strong> Adversary uses recovered key k to sign a new JWT: <code>{"sub":"attacker","role":"admin","iss":"spiffe://mesh.internal/trusted-service"}</code>. Any verifier that trusts the original JWKS accepts this as genuine.</div>
+      <div id="tnfl-s5" class="he-step" style="padding:7px 10px;background:#0a1a0a;border-radius:5px;border-left:3px solid #3fb950;font-size:12px;"><strong style="color:#3fb950;">With ML-DSA-65:</strong> Shor's algorithm has no attack on lattice-based cryptography (no known quantum speedup). The adversary's archive of signed JWTs is useless — the private key cannot be recovered. Forgery is impossible.</div>
+    </div>
+    <div id="tnfl-result" style="display:none;margin-top:10px;padding:8px 12px;border-radius:6px;background:#1a0808;border:1px solid #f85149;font-size:12px;color:#f85149;text-align:center;">
+      <strong>⚠ EC P-256 private key recovered.</strong> All past and future tokens signed with this key can now be forged. Migration to ML-DSA eliminates this risk.
+    </div>
   </div>
 
   <!-- Trust Now, Forge Later animated comparison -->
@@ -1444,6 +1534,165 @@ function runHEInference() {
       </div>
     `);
   }, 10);
+}
+
+// ── TNFL Forgery Attack Simulator ─────────────────────────────────────────
+
+function runTNFLAttack(btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+
+  // Reset
+  const steps = ['tnfl-s1','tnfl-s2','tnfl-s3','tnfl-s4','tnfl-s5'];
+  steps.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(6px)'; }
+  });
+  const result = document.getElementById('tnfl-result');
+  if (result) result.style.display = 'none';
+
+  const classicalBar = document.getElementById('tnfl-classical-bar');
+  const classicalPct = document.getElementById('tnfl-classical-pct');
+  const classicalNote = document.getElementById('tnfl-classical-note');
+  const quantumBar   = document.getElementById('tnfl-quantum-bar');
+  const quantumPct   = document.getElementById('tnfl-quantum-pct');
+
+  const totalWidth = 596;
+  if (classicalBar) { classicalBar.setAttribute('width','0'); classicalPct.textContent = '0 %'; }
+  if (quantumBar)   { quantumBar.setAttribute('width','0'); quantumPct.textContent = '0 %'; }
+  if (classicalNote) classicalNote.textContent = '→ estimated completion: heat death of universe';
+
+  // Step 1: harvest JWT (0ms)
+  setTimeout(() => {
+    const el = document.getElementById('tnfl-s1');
+    if (el) { el.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }
+  }, 200);
+
+  // Step 2: stored (800ms)
+  setTimeout(() => {
+    const el = document.getElementById('tnfl-s2');
+    if (el) { el.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }
+    // Classical bar crawls painfully (stalls at ~0.00001%)
+    let cw = 0;
+    const cTick = setInterval(() => {
+      cw = Math.min(cw + 0.15, 0.6); // max 0.6px out of 596 — imperceptible
+      if (classicalBar) classicalBar.setAttribute('width', cw.toFixed(2));
+      if (classicalPct) classicalPct.textContent = (cw / totalWidth * 100).toExponential(1) + ' %';
+    }, 50);
+    setTimeout(() => clearInterval(cTick), 5000);
+  }, 900);
+
+  // Step 3: CRQC era (2s)
+  setTimeout(() => {
+    const el = document.getElementById('tnfl-s3');
+    if (el) { el.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }
+    // Quantum bar races to 100%
+    let qw = 0;
+    const startTime = Date.now();
+    const duration = 2200;
+    const qTick = setInterval(() => {
+      const t = (Date.now() - startTime) / duration;
+      qw = Math.min(t * t * totalWidth, totalWidth); // ease-in
+      if (quantumBar) quantumBar.setAttribute('width', qw.toFixed(1));
+      if (quantumPct) quantumPct.textContent = (qw / totalWidth * 100).toFixed(0) + ' %';
+      if (qw >= totalWidth) {
+        clearInterval(qTick);
+        if (quantumPct) quantumPct.textContent = '100 %';
+      }
+    }, 30);
+  }, 2000);
+
+  // Step 4: forgery (4.5s)
+  setTimeout(() => {
+    const el = document.getElementById('tnfl-s4');
+    if (el) { el.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }
+    if (classicalNote) classicalNote.textContent = '⚠ Quantum: private key recovered in seconds — forgery successful';
+  }, 4500);
+
+  // Step 5: ML-DSA safe (5.5s)
+  setTimeout(() => {
+    const el = document.getElementById('tnfl-s5');
+    if (el) { el.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }
+    if (result) result.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '↺ Re-run';
+  }, 5600);
+}
+
+// ── HNDL Confidentiality Horizon Calculator ───────────────────────────────
+
+const _hndlState = { lt: null, sens: null };
+
+function selectHNDL(type, val, el) {
+  _hndlState[type] = val;
+  // highlight selection
+  const group = type === 'lt' ? 'hndl-lt' : 'hndl-sens';
+  document.querySelectorAll('.' + group).forEach(b => {
+    b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
+  });
+  el.style.background = 'var(--accent)'; el.style.borderColor = 'var(--accent)'; el.style.color = '#000';
+  if (_hndlState.lt && _hndlState.sens) renderHNDL();
+}
+
+function renderHNDL() {
+  const lt = _hndlState.lt;   // years data must remain confidential
+  const sens = _hndlState.sens;
+  const currentYear = 2026;
+  const crqcYear = 2031;      // central estimate
+  const maxYear = 2051;
+  const dataExpiry = currentYear + lt;
+  const totalSpan = maxYear - currentYear;
+  const svgWidth = 580;
+  const xOf = y => 20 + ((y - currentYear) / totalSpan) * svgWidth;
+
+  const expiryX = Math.min(xOf(dataExpiry), 600);
+  const crqcX   = xOf(crqcYear);
+
+  // Update SVG elements
+  const exLine = document.getElementById('hndl-expiry-line');
+  const exYr   = document.getElementById('hndl-expiry-yr');
+  const exLbl  = document.getElementById('hndl-expiry-lbl');
+  const riskFill = document.getElementById('hndl-risk-fill');
+  const safeFill = document.getElementById('hndl-safe-fill');
+
+  if (exLine) { exLine.setAttribute('x1', expiryX); exLine.setAttribute('x2', expiryX); }
+  if (exYr)   { exYr.setAttribute('x', expiryX); exYr.textContent = dataExpiry; }
+  if (exLbl)  { exLbl.setAttribute('x', expiryX); }
+
+  // Risk zone = today → CRQC (data captured now, broken at CRQC)
+  if (riskFill) {
+    riskFill.setAttribute('x', '20');
+    riskFill.setAttribute('width', (crqcX - 20).toFixed(0));
+  }
+  // Safe zone after CRQC (only if data already expired)
+  if (safeFill) {
+    if (dataExpiry <= crqcYear) {
+      safeFill.setAttribute('width', '0');
+    } else {
+      safeFill.setAttribute('x', crqcX.toFixed(0));
+      safeFill.setAttribute('width', (expiryX - crqcX).toFixed(0));
+    }
+  }
+
+  // Determine verdict
+  const atRisk = dataExpiry > crqcYear;
+  const highRisk = sens !== 'low';
+  let bg, border, msg;
+  if (!atRisk) {
+    bg='#0a1a0a'; border='#3fb950';
+    msg=`<strong style="color:#3fb950;">✓ Lower HNDL risk.</strong> Your data confidentiality period (${lt} year${lt>1?'s':''}) expires before the central CRQC estimate (~${crqcYear}). Adversaries who capture traffic today may not have a CRQC before your data loses sensitivity. Still: begin CBOM inventory now and migrate critical channels proactively — CRQC timelines are uncertain.`;
+  } else if (!highRisk) {
+    bg='#1a140a'; border='#d29922';
+    msg=`<strong style="color:#d29922;">⚠ Moderate HNDL risk.</strong> Your data remains sensitive past the CRQC estimate (~${crqcYear}). Internal-classification data captured today could be decrypted in the CRQC era. Prioritise migrating encryption key exchange (Track A: ML-KEM-768) for this data class by 2028 per ASD guidance.`;
+  } else {
+    bg='#1a0808'; border='#f85149';
+    msg=`<strong style="color:#f85149;">⚠ High HNDL risk — migrate now.</strong> Your ${sens}-classified data must remain confidential until ${dataExpiry}, well past the CRQC estimate (~${crqcYear}). Adversaries capturing today's encrypted traffic will be able to decrypt it once a CRQC is available. This data is in the confidentiality breach window. Start Track A migration immediately: TLS key exchange to X25519+ML-KEM-768, then ML-KEM-only once counterparties support it.`;
+  }
+
+  const verdict = document.getElementById('hndl-verdict');
+  if (verdict) { verdict.style.background=bg; verdict.style.border='1px solid '+border; verdict.style.borderRadius='6px'; verdict.style.padding='8px 12px'; verdict.innerHTML=msg; }
+
+  document.getElementById('hndl-result').style.display = 'block';
 }
 </script>
 </body>
