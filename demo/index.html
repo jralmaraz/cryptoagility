@@ -147,15 +147,21 @@
     <div class="card stat"><div class="val">RFC 7696</div><div class="label">Crypto Agility standard</div></div>
   </div>
 
-  <h3>NIST PQC Standards (August 2024)</h3>
+  <h3>NIST PQC Standards</h3>
   <table>
     <thead><tr><th>Standard</th><th>Algorithm</th><th>Purpose</th><th>Security Level</th></tr></thead>
     <tbody>
       <tr><td><strong>FIPS 203</strong></td><td>ML-KEM (Kyber)</td><td>Key encapsulation (replaces ECDH)</td><td>L1/L3/L5</td></tr>
       <tr><td><strong>FIPS 204</strong></td><td>ML-DSA (Dilithium)</td><td>Digital signatures (replaces ECDSA)</td><td>L2/L3/L5</td></tr>
       <tr><td><strong>FIPS 205</strong></td><td>SLH-DSA (SPHINCS+)</td><td>Hash-based signatures (stateless)</td><td>L1/L3/L5</td></tr>
+      <tr><td><strong>FIPS 206</strong></td><td>FN-DSA (FALCON)</td><td>Fast lattice signatures — small key/sig sizes for constrained environments</td><td>L1/L5</td></tr>
+      <tr><td><strong>SP 800-208</strong></td><td>LMS / XMSS</td><td>Stateful hash-based signatures — deploy-now for firmware/software signing (CNSA 2.0 required)</td><td>Various</td></tr>
+      <tr><td><strong>HQC</strong> (selected 2025)</td><td>Hamming Quasi-Cyclic</td><td>Second KEM, code-based — algorithm diversity backup for ML-KEM</td><td>L1/L3/L5</td></tr>
     </tbody>
   </table>
+  <div class="callout" style="margin-top:8px;">
+    <strong>Deployment status (F5 Labs, mid-2025):</strong> Client-side PQC support is now the default across all major browsers and runtimes (Chrome, Firefox, Safari, OpenSSL 3.5+, Go 1.24+, Node.js 24.5+). The constraint has shifted to <em>server-side and infrastructure readiness</em> — TLS termination at load balancers, proxies, and API gateways. Start there.
+  </div>
 
   <h3>Migration Path — Case by Case</h3>
   <p>There is no universal two-phase migration. The right path for each system is determined by cryptographic discovery first — asset type, data lifetime, and interoperability requirements. ASD advises that hybrid is not universally recommended; the choice is per asset class.</p>
@@ -361,6 +367,46 @@
       </tr>
     </tbody>
   </table>
+  </div>
+
+  <h3>FIPS 140-3 Deployment Environment Classification</h3>
+  <p style="font-size:13px;">Before planning migration, classify each system's deployment environment — this determines the earliest date PQC can enter production.</p>
+  <div style="overflow-x:auto;">
+  <table>
+    <thead><tr><th>Environment Class</th><th>Definition</th><th>PQC Deploy Status</th><th>Earliest PQC Production</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Unrestricted</strong></td>
+        <td>No FIPS validation required. Commercial SaaS, most cloud workloads, internal services.</td>
+        <td><span class="tag tag-safe">Deploy now</span></td>
+        <td>Today. OpenSSL 3.5+, Go 1.24+, Node.js 24.5+, all major browsers support NIST PQC by default.</td>
+      </tr>
+      <tr>
+        <td><strong>FIPS-aware</strong></td>
+        <td>FIPS validation preferred but not legally mandated. Many commercial enterprise environments.</td>
+        <td><span class="tag tag-hybrid">Proceed with risk acceptance</span></td>
+        <td>Now with documented risk acceptance — algorithms are NIST-standardised and CAVP-tested; full module validation in progress industry-wide.</td>
+      </tr>
+      <tr>
+        <td><strong>FIPS-required</strong></td>
+        <td>Federal government, defense contractors handling CUI, HIPAA technical safeguards, regulated finance.</td>
+        <td><span class="tag tag-unsafe">Wait for CMVP validation</span></td>
+        <td><strong>Mid-2027 earliest</strong> for software modules. CMVP process averages 18+ months. Use interim period for pilots, team training, policy updates. Note: FIPS 140-2 certificates move to Historical list 21 Sep 2026 — parallel migration pressure.</td>
+      </tr>
+      <tr>
+        <td><strong>CNSA 2.0 / NSS</strong></td>
+        <td>National Security Systems, NSA CNSA 2.0 scope.</td>
+        <td><span class="tag tag-unsafe">Mandatory deadlines</span></td>
+        <td>PQC required in new acquisitions from 2027. Full compliance: 2030 (software/firmware), 2033 (network/OS), 2035 (all remaining). ML-KEM-1024 + ML-DSA-87 (Level 5) required.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>CBOM Format — CycloneDX</h3>
+  <p style="font-size:13px;">The industry standard for CBOM is <strong>CycloneDX</strong> — supported by OWASP, adopted by the Post-Quantum Computing Consortium (PQCC), and integrated into tooling from IBM, SandboxAQ, and the Linux Foundation's PQCA project (<a href="https://github.com/IBM/cbomkit" target="_blank" style="color:var(--accent);">CBOMkit</a>). Each CBOM entry captures: component identifier, algorithm in use, key sizes and parameters, protocol context, certificate/key location, and vulnerability status.</p>
+  <div class="callout" style="margin-top:4px;">
+    Prioritise CBOM completion in layers: <strong>Layer 1 (Infrastructure)</strong> — TLS, SSH, VPN on load balancers, proxies, network appliances — target 100% within 3 months. <strong>Layer 2 (Platform)</strong> — cloud KMS, HSMs, internal CAs, identity providers — target 100% within 3 months. <strong>Layer 3 (Application)</strong> — code-level crypto, data-at-rest encryption, token signing — high-risk apps within 6 months. <strong>Layer 4 (OT/Embedded)</strong> — vendor-dependent systems with limited visibility — document gaps and accept with justification.
   </div>
 
   <h3>Discovery Output → Migration Decision</h3>
@@ -1074,6 +1120,27 @@ Payload:
         <td><span class="tag tag-safe">Feb 2026</span></td>
         <td>ISM mandates cessation of traditional asymmetric crypto by end of 2030. Milestones: plan by 2026, commence critical systems by 2028, complete by 2030. ML-KEM + ML-DSA recommended.</td>
         <td>Discovery tab milestones</td>
+      </tr>
+      <tr>
+        <td><a href="https://csrc.nist.gov/projects/post-quantum-cryptography/round-4-submissions" style="color:var(--accent)" target="_blank">HQC — Hamming Quasi-Cyclic</a></td>
+        <td>NIST (selected 2025)</td>
+        <td><span class="tag tag-hybrid">Standardising</span></td>
+        <td>Second NIST KEM — code-based cryptography (different family from ML-KEM's lattices). Selected as ML-KEM backup for algorithm diversity / sovereignty. Not a replacement — complement for high-assurance environments that want two independent crypto families.</td>
+        <td>Supply Chain agility test reference</td>
+      </tr>
+      <tr>
+        <td><a href="https://csrc.nist.gov/pubs/fips/206/final" style="color:var(--accent)" target="_blank">NIST FIPS 206 — FN-DSA</a></td>
+        <td>NIST</td>
+        <td><span class="tag tag-safe">Published</span></td>
+        <td>FALCON — fast lattice-based signatures with small key+signature sizes. Suited for bandwidth-constrained environments (IoT, firmware headers). More complex to implement safely than ML-DSA.</td>
+        <td>Algorithm pipeline reference</td>
+      </tr>
+      <tr>
+        <td>CycloneDX CBOM (OWASP / PQCC)</td>
+        <td>OWASP / Linux Foundation</td>
+        <td><span class="tag tag-safe">De facto standard</span></td>
+        <td>Recommended CBOM format. Native support for cryptographic asset types: algorithms, certificates, keys, protocols. Supported by IBM, SandboxAQ, PQCA CBOMkit. Integrates with CI/CD and SBOM tooling.</td>
+        <td>Discovery tab CBOM section</td>
       </tr>
     </tbody>
   </table>

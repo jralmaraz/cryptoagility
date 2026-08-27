@@ -103,6 +103,33 @@
       "notes": "Feb 2026 ASD article. ISM mandates cessation of traditional asymmetric crypto by end of 2030. Milestones: refined plan by 2026, commence critical systems by 2028, complete by 2030. CBOM (cryptographic bill of materials) named as key planning concept. ML-KEM and ML-DSA as recommended algorithms. APRA-regulated entities must start mapping crypto dependencies."
     },
     {
+      "id": "nist-fips-206",
+      "label": "NIST FIPS 206 — FN-DSA (FALCON)",
+      "status": "published",
+      "implemented_rev": "final",
+      "source": "https://csrc.nist.gov/pubs/fips/206/final",
+      "first_seen": "2026-08-28",
+      "notes": "FALCON — fast lattice-based signatures with small key+signature sizes. Suited for bandwidth-constrained environments (IoT, firmware headers). More complex to implement safely than ML-DSA; requires careful implementation of Gaussian sampling."
+    },
+    {
+      "id": "hqc-nist",
+      "label": "HQC — Hamming Quasi-Cyclic (NIST selected 2025)",
+      "status": "standardising",
+      "implemented_rev": "",
+      "source": "https://csrc.nist.gov/projects/post-quantum-cryptography/round-4-submissions",
+      "first_seen": "2026-08-28",
+      "notes": "Second NIST KEM, selected 2025. Code-based cryptography — different family from ML-KEM lattices. Algorithm diversity / sovereignty backup. Not a replacement for ML-KEM; complement for high-assurance environments. Referenced in Supply Chain agility Dimension 5 test."
+    },
+    {
+      "id": "cyclonedx-cbom",
+      "label": "CycloneDX CBOM — OWASP / Linux Foundation PQCA",
+      "status": "reference",
+      "implemented_rev": "",
+      "source": "https://github.com/IBM/cbomkit",
+      "first_seen": "2026-08-28",
+      "notes": "De facto CBOM format standard. Supported by OWASP, PQCC, IBM (CBOMkit), SandboxAQ. Native support for algorithms, certificates, keys, protocols, related dependencies. Integrates with CI/CD and SBOM tooling."
+    },
+    {
       "id": "nist-sp-800-208",
       "label": "NIST SP 800-208 — Stateful Hash-Based Signature Schemes",
       "status": "published",
