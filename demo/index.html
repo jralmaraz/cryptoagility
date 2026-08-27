@@ -256,6 +256,60 @@
     </div>
   </div>
 
+  <h3>Two-Track Migration Model</h3>
+  <p>Run key-exchange migration and signature/PKI migration as <strong>parallel tracks</strong> — they have different urgency drivers, different algorithms, and different operational constraints.</p>
+  <div class="grid2" style="margin-top:10px;">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <strong style="color:var(--accent);">Track A — Key Exchange (HNDL)</strong>
+      <p style="margin:8px 0;font-size:12px;">Urgency driven by data confidentiality lifetime. Begin with systems whose data is encrypted today and must remain confidential for &gt;5 years.</p>
+      <ul style="margin:6px 0 0 16px;font-size:12px;color:var(--muted);">
+        <li>Algorithm: <strong>ML-KEM-768</strong> (FIPS 203)</li>
+        <li>Hybrid option: X25519+ML-KEM-768 (TLS 1.3 hybrid group)</li>
+        <li>Targets: TLS, ECDH-wrapped keys, key-wrapping schemes</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--danger);">
+      <strong style="color:var(--danger);">Track B — Signatures &amp; PKI (TNFL)</strong>
+      <p style="margin:8px 0;font-size:12px;">Urgency driven by key validity and artifact longevity. Root CAs, firmware signing, and code signing have the highest TNFL exposure.</p>
+      <ul style="margin:6px 0 0 16px;font-size:12px;color:var(--muted);">
+        <li><strong>Deploy-now (CNSA 2.0 required):</strong> SP 800-208 hash-based signatures (LMS/XMSS) — NIST-standardised, validated, conservative; for firmware, software update signing, and secure boot. Requires HSM-backed state management — stateful schemes fail catastrophically on key-state reuse.</li>
+        <li><strong>General-purpose path:</strong> ML-DSA-65/87 (FIPS 204) — for high-volume signing as toolchains and FIPS-validated modules mature</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:10px;">
+    <strong>SP 800-208 is the deploy-now Track B option.</strong> LMS and XMSS have validated implementations including current HSM firmware. The NSA CNSA 2.0 guidance requires them for software and firmware signing, the one signature migration NSA says to begin immediately. <em>Do not wait for ML-DSA ecosystem maturity to start Track B.</em>
+  </div>
+
+  <h3>Regulatory Timeline — ASD Milestones</h3>
+  <div style="overflow-x:auto;margin-top:8px;">
+  <table>
+    <thead><tr><th>Deadline</th><th>ASD / ISM Requirement</th><th>HNDL / TNFL Implication</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Now</strong></td>
+        <td>Begin CBOM / cryptographic inventory. Identify systems with long-lived data or keys.</td>
+        <td>HNDL clock is already running — adversaries may be recording now</td>
+      </tr>
+      <tr>
+        <td><strong>End of 2026</strong></td>
+        <td>Refined PQC transition plan. APRA-regulated entities: mapping of crypto dependencies required.</td>
+        <td>CBOM must be complete enough to scope Track A and Track B work</td>
+      </tr>
+      <tr>
+        <td><strong>End of 2028</strong></td>
+        <td>PQC transition commenced for critical systems and data.</td>
+        <td>Track A (HNDL): TLS / key-wrap migration underway. Track B (TNFL): Root CA + firmware signing migrated.</td>
+      </tr>
+      <tr>
+        <td><strong>End of 2030</strong></td>
+        <td>ISM: Cease use of traditional asymmetric cryptography. PQC transition complete.</td>
+        <td>All HNDL and TNFL exposure eliminated — classical signing and key exchange retired.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
   <h3>Discovery Output → Migration Decision</h3>
   <div class="callout" style="margin-top:4px;">
     The output of discovery is a prioritised list of assets mapped to threats (HNDL / TNFL / neither) and criticality tiers. This — not a universal template — drives which systems get direct PQC migration, hybrid transition, or deferral. Return to the <em>Overview</em> tab for the decision framework.
@@ -556,35 +610,51 @@
   <div class="card" style="margin-top:16px;">
     <h3 style="margin-top:0;">Crypto Agility as Operational Discipline</h3>
     <p>The technical mechanism above (algorithm negotiation + rotation) is necessary but not sufficient. The real goal is being able to <strong>replace your cryptography again and again</strong> — as standards break, vulnerabilities emerge, and threat levels evolve. That is an operational risk management challenge, not a protocol feature.</p>
-    <p>PQC frameworks (including <a href="https://pqcframework.org" target="_blank" style="color:var(--accent);">pqcframework.org</a>) describe crypto agility as a five-dimensional discipline:</p>
-    <div class="grid2" style="margin-top:12px;">
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);">
-          <strong style="font-size:13px;">Governance</strong>
-          <p style="margin:4px 0 0;font-size:12px;">Who owns the decision to rotate an algorithm? What is the approval path? What is your RTO if a CRQC is announced today?</p>
+    <p>Per the <a href="https://pqcframework.org" target="_blank" style="color:var(--accent);">Applied Quantum PQC Migration Framework</a>, crypto agility is a five-dimensional operational discipline — each dimension has a concrete testability criterion:</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <strong style="font-size:13px;">1. Architectural Agility</strong>
+          <span style="font-size:10px;color:var(--muted);font-style:italic;">Dimension 1</span>
         </div>
-        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent2);">
-          <strong style="font-size:13px;">Inventory (CBOM)</strong>
-          <p style="margin:4px 0 0;font-size:12px;">The cryptographic bill of materials must stay current. New services, new dependencies, certificate renewals — the CBOM drifts without active maintenance.</p>
-        </div>
-        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--purple);">
-          <strong style="font-size:13px;">Architecture</strong>
-          <p style="margin:4px 0 0;font-size:12px;">Are algorithm choices externalised (config / registry) or hardcoded? Hardcoded algorithms require code changes to rotate — eliminating agility in practice.</p>
-        </div>
+        <p style="margin:4px 0 2px;font-size:12px;">Applications use cryptographic providers or adapters — no direct algorithm calls in app code. Algorithm selection is configuration-driven, not hardcoded. Dual-stack capability during transition so systems can negotiate both classical and PQC simultaneously.</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--warn);font-style:italic;">Test: Can you change key exchange algorithm on a Tier-1 service via config change, without a code modification?</p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--warn);">
-          <strong style="font-size:13px;">Processes</strong>
-          <p style="margin:4px 0 0;font-size:12px;">Rotation SLAs: how quickly must the org rotate after a vulnerability disclosure? Are runbooks tested? Is key material stored separately from algorithm configuration?</p>
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent2);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <strong style="font-size:13px;">2. Operational Agility</strong>
+          <span style="font-size:10px;color:var(--muted);font-style:italic;">Dimension 2</span>
         </div>
-        <div style="padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--danger);">
-          <strong style="font-size:13px;">Detection</strong>
-          <p style="margin:4px 0 0;font-size:12px;">How do you know when a new system is deployed using a deprecated algorithm? Agility without detection means the CBOM immediately becomes stale post-rotation.</p>
+        <p style="margin:4px 0 2px;font-size:12px;">Rotation processes are tested, documented, and automated. Rollback capability exists. CBOM-driven alerting detects new deployments using deprecated algorithms before they accumulate.</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--warn);font-style:italic;">Test: Can the org execute a full key-exchange rotation from detection to production in ≤48 hours?</p>
+      </div>
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--purple);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <strong style="font-size:13px;">3. Governance Agility</strong>
+          <span style="font-size:10px;color:var(--muted);font-style:italic;">Dimension 3</span>
         </div>
+        <p style="margin:4px 0 2px;font-size:12px;">Approved-algorithms list is maintained and enforced at CI/CD gates. The org can evaluate and approve a new algorithm candidate in weeks, not months. Clear risk-acceptance process for edge cases.</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--warn);font-style:italic;">Test: Could the org evaluate and adopt an emergency algorithm replacement in &lt;90 days from NIST announcement?</p>
+      </div>
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--warn);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <strong style="font-size:13px;">4. Skills Agility</strong>
+          <span style="font-size:10px;color:var(--muted);font-style:italic;">Dimension 4</span>
+        </div>
+        <p style="margin:4px 0 2px;font-size:12px;">Engineers who can independently evaluate a new cipher's security properties, not just implement it. A quantum CTI (cyber threat intelligence) function monitors CRQC timeline updates, new break announcements, and emerging standards.</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--warn);font-style:italic;">Test: Does the org have ≥2 engineers who can independently evaluate a new cipher's security claims?</p>
+      </div>
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--danger);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <strong style="font-size:13px;">5. Supply Chain Agility</strong>
+          <span style="font-size:10px;color:var(--muted);font-style:italic;">Dimension 5</span>
+        </div>
+        <p style="margin:4px 0 2px;font-size:12px;">Vendors and third parties support configuration-driven algorithm selection. HSM firmware updates without hardware replacement. Cloud KMS exposes algorithm selection as a customer-configurable parameter. Dependencies do not veto algorithm decisions.</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--warn);font-style:italic;">Test: If adding HQC alongside ML-KEM, how many vendor dependencies would block that decision?</p>
       </div>
     </div>
     <div class="callout" style="margin-top:14px;">
-      The threat-level rotation above demonstrates the <em>trigger mechanism</em>. The five dimensions above are what enable an organisation to <em>act on</em> that trigger reliably — across every system in the CBOM, within the required SLA.
+      The threat-level rotation above demonstrates the <em>trigger mechanism</em>. The five dimensions above are what determine whether an organisation can <em>act on</em> that trigger reliably — across every system in the CBOM, within the required SLA.
     </div>
   </div>
 </div>
@@ -856,8 +926,15 @@ Payload:
         <td><a href="https://csrc.nist.gov/pubs/fips/205/final" style="color:var(--accent)">NIST FIPS 205</a></td>
         <td>NIST</td>
         <td><span class="tag tag-safe">Published</span></td>
-        <td>SLH-DSA — hash-based signatures</td>
+        <td>SLH-DSA — stateless hash-based signatures (general-purpose)</td>
         <td>Registry only</td>
+      </tr>
+      <tr>
+        <td><a href="https://csrc.nist.gov/pubs/sp/800/208/final" style="color:var(--accent)">NIST SP 800-208</a></td>
+        <td>NIST</td>
+        <td><span class="tag tag-safe">Published</span></td>
+        <td>LMS &amp; XMSS — stateful hash-based signatures. <strong>Deploy-now Track B option</strong> for firmware/software signing. Required by CNSA 2.0. Needs HSM-backed state management.</td>
+        <td>Discovery tab</td>
       </tr>
       <tr>
         <td>draft-ietf-pquip-pqc-engineers</td>
@@ -895,11 +972,18 @@ Payload:
         <td>Discovery tab, Agility tab</td>
       </tr>
       <tr>
-        <td><a href="https://www.cyber.gov.au/resources-business-and-government/maintaining-devices-and-systems/system-hardening-and-administration/cryptography/preparing-for-post-quantum-cryptography" style="color:var(--accent)" target="_blank">ASD PQC Guidance</a></td>
+        <td><a href="https://www.cyber.gov.au/resources-business-and-government/maintaining-devices-and-systems/system-hardening-and-administration/cryptography/preparing-for-post-quantum-cryptography" style="color:var(--accent)" target="_blank">ASD — Preparing for PQC</a></td>
         <td>ASD</td>
         <td><span class="tag tag-safe">Published</span></td>
-        <td>Cryptographic inventory as first step; hybrid PQC is case-by-case</td>
+        <td>Cryptographic inventory as first step; hybrid PQC is case-by-case, not universal</td>
         <td>Discovery tab, Hybrid tab</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.cyber.gov.au/about-us/view-all-content/news/stay-ahead-of-the-quantum-threat-with-post-quantum-cryptography" style="color:var(--accent)" target="_blank">ASD — Stay Ahead of the Quantum Threat</a></td>
+        <td>ASD</td>
+        <td><span class="tag tag-safe">Feb 2026</span></td>
+        <td>ISM mandates cessation of traditional asymmetric crypto by end of 2030. Milestones: plan by 2026, commence critical systems by 2028, complete by 2030. ML-KEM + ML-DSA recommended.</td>
+        <td>Discovery tab milestones</td>
       </tr>
     </tbody>
   </table>

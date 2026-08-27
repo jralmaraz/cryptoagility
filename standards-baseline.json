@@ -92,6 +92,24 @@
       "source": "https://www.cyber.gov.au/resources-business-and-government/maintaining-devices-and-systems/system-hardening-and-administration/cryptography/preparing-for-post-quantum-cryptography",
       "first_seen": "2026-08-27",
       "notes": "Australian Signals Directorate guidance. Explicitly advises hybrid PQC is case-by-case, not a universal first step. Cryptographic discovery is identified as the critical starting point."
+    },
+    {
+      "id": "asd-quantum-threat-2026",
+      "label": "ASD — Stay Ahead of the Quantum Threat",
+      "status": "reference",
+      "implemented_rev": "",
+      "source": "https://www.cyber.gov.au/about-us/view-all-content/news/stay-ahead-of-the-quantum-threat-with-post-quantum-cryptography",
+      "first_seen": "2026-08-27",
+      "notes": "Feb 2026 ASD article. ISM mandates cessation of traditional asymmetric crypto by end of 2030. Milestones: refined plan by 2026, commence critical systems by 2028, complete by 2030. CBOM (cryptographic bill of materials) named as key planning concept. ML-KEM and ML-DSA as recommended algorithms. APRA-regulated entities must start mapping crypto dependencies."
+    },
+    {
+      "id": "nist-sp-800-208",
+      "label": "NIST SP 800-208 — Stateful Hash-Based Signature Schemes",
+      "status": "published",
+      "implemented_rev": "final",
+      "source": "https://csrc.nist.gov/pubs/sp/800/208/final",
+      "first_seen": "2026-08-27",
+      "notes": "Standardises LMS and XMSS stateful hash-based signatures. Required by CNSA 2.0 for software and firmware signing — the one signature migration NSA says to begin immediately. Deploy-now Track B option; requires HSM-backed state management (key-state reuse is catastrophic). Not the same as FIPS 205 (SLH-DSA, which is stateless)."
     }
   ]
 }
