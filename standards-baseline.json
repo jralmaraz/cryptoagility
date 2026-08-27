@@ -74,6 +74,24 @@
       "source": "https://github.com/google/heir",
       "first_seen": "2026-08-16",
       "notes": "Open-source (not IETF); basis for HE inference concepts in pkg/inference"
+    },
+    {
+      "id": "pqcframework-org",
+      "label": "PQC Migration Framework — pqcframework.org",
+      "status": "reference",
+      "implemented_rev": "",
+      "source": "https://pqcframework.org",
+      "first_seen": "2026-08-27",
+      "notes": "Comprehensive 8-phase PQC migration programme; defines CBOM, TNFL threat class, five-dimensional crypto agility model. Informs Discovery tab, Agility tab operational section, and hybrid PQC caveats."
+    },
+    {
+      "id": "asd-pqc-guidance",
+      "label": "ASD — Preparing for Post-Quantum Cryptography",
+      "status": "reference",
+      "implemented_rev": "",
+      "source": "https://www.cyber.gov.au/resources-business-and-government/maintaining-devices-and-systems/system-hardening-and-administration/cryptography/preparing-for-post-quantum-cryptography",
+      "first_seen": "2026-08-27",
+      "notes": "Australian Signals Directorate guidance. Explicitly advises hybrid PQC is case-by-case, not a universal first step. Cryptographic discovery is identified as the critical starting point."
     }
   ]
 }

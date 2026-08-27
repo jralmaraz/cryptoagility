@@ -10,14 +10,15 @@ A PoC exploring post-quantum cryptography (NIST FIPS 203/204/205), cryptographic
 
 | Tab | What it shows |
 |---|---|
-| Overview | Quantum threat timeline, harvest-now-decrypt-later, NIST PQC summary |
+| Overview | HNDL + TNFL threat taxonomy, case-by-case migration decision framework, NIST PQC summary |
+| Crypto Discovery | CBOM methodology — how to inventory cryptographic assets, HNDL vs TNFL risk mapping, asset criticality matrix |
 | ML-KEM | Live ML-KEM-768 key encapsulation demo (real stdlib implementation) |
 | ML-DSA | Digital signature transition — token headers changing from ES256 to ML-DSA-65 |
-| Hybrid Classical+PQC | X25519+ML-KEM-768 two-leg handshake (TLS 1.3 hybrid) |
-| Crypto Agility | Algorithm negotiation + threat-level rotation policy |
+| Hybrid Classical+PQC | X25519+ML-KEM-768 two-leg handshake (TLS 1.3 hybrid) — with ASD case-by-case guidance |
+| Crypto Agility | Algorithm negotiation + threat-level rotation + five-dimensional operational discipline model |
 | Private Inference (HE) | Simulated homomorphic encryption for private AI inference |
-| Identity Transition | How JWT/WIT/mTLS tokens migrate to post-quantum algorithms |
-| Standards | NIST FIPS 203/204/205 + IETF PQUIP/TLS/JOSE tracker |
+| Identity Transition | TNFL threat for JWTs and certs; how JWT/WIT/mTLS tokens migrate to post-quantum algorithms |
+| Standards | NIST FIPS 203/204/205 + IETF PQUIP/TLS/JOSE + pqcframework.org + ASD tracker |
 
 ## Package structure
 
