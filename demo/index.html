@@ -1030,6 +1030,63 @@ Payload:
   <div class="callout warn" style="margin-top:16px;">
     <strong>Crypto agility in SPIRE:</strong> SPIRE Server signing key must be rotated to ML-DSA before SVID TTL expires. Plan key rotation windows carefully — SVID renewals fail if the signing algorithm is not supported by the SPIRE agent version.
   </div>
+
+  <!-- ── FIDO2 Passkeys — Quantum Gap ── -->
+  <h3 style="margin-top:32px;margin-bottom:10px">FIDO2 Passkeys — Quantum Gap</h3>
+  <p style="margin-bottom:14px">FIDO2 passkeys (WebAuthn Level 4) secure billions of accounts today using ES256 (P-256). While passkeys are phishing-resistant, their underlying signing algorithm is classically secure — vulnerable to a sufficiently powerful quantum computer via Shor's algorithm. The L4 COSE registry has no PQC entry. Passkeys need WebAuthn L5 (or a future COSE extension) for quantum-safe operation.</p>
+
+  <!-- Timeline -->
+  <div id="wa-timeline" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 0">
+      <!-- dot 1 -->
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:140px">
+        <div id="wa-dot-1" style="width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--accent);transition:box-shadow .4s"></div>
+        <div style="font-weight:700;font-size:12px;margin-top:6px;color:var(--accent)">2026</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;text-align:center">WebAuthn L4<br>ES256 / RS256 / EdDSA<br><span style="color:#f0a500">classical only</span></div>
+      </div>
+      <div id="wa-line-1" style="flex:1;height:2px;background:var(--border);border-top:2px dashed var(--border);min-width:30px;transition:border-color .4s .3s"></div>
+      <!-- dot 2 -->
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:160px">
+        <div id="wa-dot-2" style="width:14px;height:14px;border-radius:50%;background:var(--border);border:2px solid var(--border);transition:all .4s .35s"></div>
+        <div style="font-weight:700;font-size:12px;margin-top:6px;color:var(--muted)">2027–?</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;text-align:center">NIST FIPS 204 (ML-DSA)<br>COSE type: <em>not yet assigned</em><br><span style="color:var(--muted)">WebAuthn gap remains</span></div>
+      </div>
+      <div id="wa-line-2" style="flex:1;height:2px;background:var(--border);border-top:2px dashed var(--border);min-width:30px;transition:border-color .4s .65s"></div>
+      <!-- dot 3 -->
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:150px">
+        <div id="wa-dot-3" style="width:14px;height:14px;border-radius:50%;background:var(--border);border:2px solid var(--border);transition:all .4s .7s"></div>
+        <div style="font-weight:700;font-size:12px;margin-top:6px;color:var(--muted)">TBD</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;text-align:center">WebAuthn L5<br>ML-DSA passkeys<br><span style="color:var(--accent2)">quantum-safe ✓</span></div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <button id="wa-timeline-btn" class="btn" onclick="playWATimeline()">▶ Play Timeline</button>
+    </div>
+  </div>
+
+  <!-- Audit -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <strong style="font-size:13px">COSE Algorithm Audit (WebAuthn L4)</strong>
+    <button class="btn" onclick="runWAAlgoAudit()">Run WASM Audit</button>
+  </div>
+  <div id="wa-audit-out" style="display:none">
+    <div id="wa-audit-table-wrap" style="overflow-x:auto;margin-bottom:12px">
+      <table id="wa-audit-table">
+        <thead>
+          <tr>
+            <th>Algorithm</th><th>COSE Alg</th><th>Curve / Key</th>
+            <th>Quantum-Safe</th><th>WebAuthn L4</th><th>WebAuthn L5</th><th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="wa-audit-tbody"></tbody>
+      </table>
+    </div>
+    <div id="wa-gap-note" class="callout warn" style="margin-bottom:12px"></div>
+    <div class="callout warn">
+      <strong>HNDL risk:</strong> A nation-state harvesting passkey-signed assertions today can retroactively break them once a quantum computer exists — if the signing algorithm is ES256. This is the <em>Harvest Now, Decrypt Later</em> threat applied to authentication.
+    </div>
+  </div>
+  <div id="wa-audit-err" style="display:none;color:#f85149;font-size:12px;font-family:monospace;margin-top:8px"></div>
 </div>
 
 <!-- ============ STANDARDS ============ -->
@@ -1760,6 +1817,92 @@ function renderHNDL() {
   if (verdict) { verdict.style.background=bg; verdict.style.border='1px solid '+border; verdict.style.borderRadius='6px'; verdict.style.padding='8px 12px'; verdict.innerHTML=msg; }
 
   document.getElementById('hndl-result').style.display = 'block';
+}
+
+// ── WebAuthn L4 PQC Gap ──────────────────────────────────────────────────────
+let waTimelinePlayed = false;
+
+function playWATimeline() {
+  const btn = document.getElementById('wa-timeline-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  waTimelinePlayed = false;
+
+  // Reset dots/lines
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById('wa-dot-' + i);
+    if (dot) { dot.style.background = 'var(--border)'; dot.style.borderColor = 'var(--border)'; dot.style.boxShadow = ''; }
+  });
+  [1,2].forEach(i => {
+    const line = document.getElementById('wa-line-' + i);
+    if (line) { line.style.borderColor = 'var(--border)'; }
+  });
+
+  setTimeout(() => {
+    const d1 = document.getElementById('wa-dot-1');
+    if (d1) { d1.style.background = 'var(--accent)'; d1.style.borderColor = 'var(--accent)'; d1.style.boxShadow = '0 0 8px var(--accent)'; }
+  }, 100);
+  setTimeout(() => {
+    const l1 = document.getElementById('wa-line-1');
+    if (l1) l1.style.borderColor = 'var(--warn)';
+  }, 500);
+  setTimeout(() => {
+    const d2 = document.getElementById('wa-dot-2');
+    if (d2) { d2.style.background = 'var(--warn)'; d2.style.borderColor = 'var(--warn)'; d2.style.boxShadow = '0 0 8px var(--warn)'; }
+  }, 900);
+  setTimeout(() => {
+    const l2 = document.getElementById('wa-line-2');
+    if (l2) l2.style.borderColor = 'var(--accent2)';
+  }, 1300);
+  setTimeout(() => {
+    const d3 = document.getElementById('wa-dot-3');
+    if (d3) { d3.style.background = 'var(--accent2)'; d3.style.borderColor = 'var(--accent2)'; d3.style.boxShadow = '0 0 8px var(--accent2)'; }
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Play Again'; }
+    waTimelinePlayed = true;
+  }, 1700);
+}
+
+function runWAAlgoAudit() {
+  const out = document.getElementById('wa-audit-out');
+  const err = document.getElementById('wa-audit-err');
+  out.style.display = 'none';
+  err.style.display = 'none';
+
+  if (!requireWasm()) return;
+
+  try {
+    const r = webauthnAlgoAudit();
+    if (!r.ok) { err.textContent = r.error || 'unknown error'; err.style.display = 'block'; return; }
+
+    const tbody = document.getElementById('wa-audit-tbody');
+    tbody.innerHTML = '';
+    (r.algorithms || []).forEach(a => {
+      const qs = a.quantum_safe;
+      const l4 = a.webauthn_l4;
+      const l5 = a.webauthn_l5;
+      const rowColor = qs ? 'rgba(63,185,80,.06)' : 'rgba(240,165,0,.05)';
+      const tr = document.createElement('tr');
+      tr.style.background = rowColor;
+      tr.innerHTML = `
+        <td style="font-weight:700;color:${qs ? 'var(--accent2)' : 'var(--warn)'}">${a.name}</td>
+        <td style="font-family:monospace">${a.cose_alg === 0 ? 'TBD' : a.cose_alg}</td>
+        <td style="font-family:monospace">${a.curve || '—'}</td>
+        <td style="color:${qs ? 'var(--accent2)' : '#f85149'};font-weight:700">${qs ? '✓ Yes' : '✗ No'}</td>
+        <td style="color:${l4 ? 'var(--accent2)' : 'var(--muted)'}">${l4 ? '✓' : '—'}</td>
+        <td style="color:${l5 ? 'var(--accent2)' : 'var(--muted)'}">${l5 ? '✓ (projected)' : '—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${a.note}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const gapEl = document.getElementById('wa-gap-note');
+    if (gapEl) gapEl.textContent = r.gap_note;
+
+    out.style.display = 'block';
+
+    if (!waTimelinePlayed) playWATimeline();
+  } catch(e) {
+    err.textContent = e.message || String(e);
+    err.style.display = 'block';
+  }
 }
 </script>
 </body>

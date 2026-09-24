@@ -12,6 +12,7 @@ import (
 	"github.com/jralmaraz/cryptoagility/pkg/agility"
 	"github.com/jralmaraz/cryptoagility/pkg/inference"
 	"github.com/jralmaraz/cryptoagility/pkg/pqc"
+	"github.com/jralmaraz/cryptoagility/pkg/webauthn"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 	js.Global().Set("agilityNegotiateDemo", js.FuncOf(agilityNegotiateDemo))
 	js.Global().Set("keyRotationDemo", js.FuncOf(keyRotationDemo))
 	js.Global().Set("heInferenceDemo", js.FuncOf(heInferenceDemo))
+	js.Global().Set("webauthnAlgoAudit", js.FuncOf(webauthnAlgoAudit))
 
 	js.Global().Get("document").Call("dispatchEvent",
 		js.Global().Get("CustomEvent").New("wasm-ready",
@@ -344,6 +346,40 @@ func heInferenceDemo(_ js.Value, args []js.Value) interface{} {
 }
 
 // --- helpers ---
+
+// webauthnAlgoAudit returns the COSE algorithm audit table for WebAuthn L4,
+// highlighting which algorithms are present and which PQC ones are missing.
+func webauthnAlgoAudit(_ js.Value, _ []js.Value) interface{} {
+	entries := webauthn.Audit()
+
+	algos := make([]interface{}, len(entries))
+	var classicalCount, quantumCount int
+	for i, e := range entries {
+		algos[i] = map[string]interface{}{
+			"cose_alg":     e.COSEAlg,
+			"name":         e.Name,
+			"curve":        e.Curve,
+			"quantum_safe": e.QuantumSafe,
+			"webauthn_l4":  e.WebAuthnL4,
+			"webauthn_l5":  e.WebAuthnL5,
+			"note":         e.Note,
+		}
+		if e.WebAuthnL4 {
+			classicalCount++
+		}
+		if e.QuantumSafe {
+			quantumCount++
+		}
+	}
+
+	return map[string]interface{}{
+		"ok":              true,
+		"algorithms":      algos,
+		"classical_count": classicalCount,
+		"quantum_count":   quantumCount,
+		"gap_note":        webauthn.GapNote(),
+	}
+}
 
 func errResult(msg string) map[string]interface{} {
 	return map[string]interface{}{"ok": false, "error": msg}
